@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1767947576741,
+      "tag": "0000_messy_archangel",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1767947655246,
+      "tag": "0001_talented_meggan",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1767955871827,
+      "tag": "0002_brainy_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1768134507144,
+      "tag": "0003_early_marvel_zombies",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1768374505673,
+      "tag": "0004_black_post",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1768376344942,
+      "tag": "0005_friendly_bloodscream",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1768590310186,
+      "tag": "0006_even_captain_america",
+      "breakpoints": true
+    }
+  ]
+}
