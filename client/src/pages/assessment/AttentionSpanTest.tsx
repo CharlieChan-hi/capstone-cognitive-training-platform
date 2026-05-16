@@ -215,7 +215,6 @@ export default function AttentionSpanTest({ onComplete }: AttentionSpanTestProps
     const metrics = calculateMetrics();
     
     // TODO: Save to backend via API
-    console.log("Attention Span Test Results:", metrics);
     
     // If onComplete callback is provided, call it instead of navigating
     if (onComplete) {

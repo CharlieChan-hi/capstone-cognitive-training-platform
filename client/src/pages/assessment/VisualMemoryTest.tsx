@@ -216,7 +216,6 @@ export default function VisualMemoryTest({ onComplete }: VisualMemoryTestProps =
     const metrics = calculateMetrics();
     
     // TODO: Save to backend via API
-    console.log("Visual Memory Test Results:", metrics);
     
     // If onComplete callback is provided, call it instead of navigating
     if (onComplete) {

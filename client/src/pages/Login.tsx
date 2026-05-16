@@ -48,21 +48,21 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-xl border border-border p-8 w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-slate-900/5 p-4 rounded-full mb-4">
-            <Brain className="w-12 h-12 text-slate-900" />
+          <div className="bg-primary/10 p-4 rounded-full mb-4">
+            <Brain className="w-12 h-12 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{t.app.title}</h1>
-          <p className="text-slate-500 mt-2 text-center">
+          <h1 className="text-2xl font-bold text-foreground">{t.app.title}</h1>
+          <p className="text-muted-foreground mt-2 text-center">
             {t.app.subtitle}
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="username" className="block text-sm font-medium text-foreground mb-1">
               {t.app.usernameLabel}
             </label>
             <Input
@@ -76,14 +76,14 @@ export default function Login() {
             />
           </div>
           
-          <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11">
+          <Button type="submit" className="w-full h-11">
             {t.app.startSession}
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-slate-100">
+        <div className="mt-8 pt-6 border-t border-border">
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-slate-400 text-center uppercase tracking-wider font-medium">{t.app.dataMgmt}</p>
+            <p className="text-xs text-muted-foreground text-center uppercase tracking-wider font-medium">{t.app.dataMgmt}</p>
             <input
               type="file"
               ref={fileInputRef}
@@ -94,7 +94,7 @@ export default function Login() {
             <Button 
               variant="outline" 
               onClick={handleImportClick}
-              className="w-full flex items-center justify-center gap-2 text-slate-600"
+              className="w-full flex items-center justify-center gap-2"
             >
               <Upload className="w-4 h-4" />
               {t.app.importData}
@@ -104,7 +104,7 @@ export default function Login() {
 
         <div className="mt-8 text-center flex flex-col items-center gap-4">
           <LanguageSwitcher />
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             {t.app.footer}
           </p>
         </div>

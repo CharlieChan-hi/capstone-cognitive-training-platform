@@ -16,11 +16,13 @@ import {
   Area, ComposedChart
 } from 'recharts';
 import { Link } from 'wouter';
-import { format } from 'date-fns';
+import { addDays, format, startOfWeek, subDays } from 'date-fns';
 import { TrainingCalendar } from '@/components/TrainingCalendar';
 import { interpretDPrime, interpretBeta } from '@/lib/sdtUtils';
 import { MetricTooltip } from '@/components/MetricTooltip';
 import { PageHeader } from '@/components/PageHeader';
+
+const CALENDAR_WEEKS_TO_SHOW = 22;
 
 // Assessment Card Component
 function AssessmentCard({ language }: { language: 'zh' | 'en' }) {
@@ -96,9 +98,9 @@ function AssessmentCard({ language }: { language: 'zh' | 'en' }) {
 
   if (!assessmentStatus.completed) {
     return (
-      <div className="flex items-center gap-4 p-4 rounded-xl border border-blue-500/20 bg-gradient-to-r from-blue-50/80 to-purple-50/80 dark:from-blue-950/20 dark:to-purple-950/20">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shrink-0">
-          <Brain className="w-5 h-5 text-white" />
+      <div className="flex items-center gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+          <Brain className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">
@@ -109,7 +111,7 @@ function AssessmentCard({ language }: { language: 'zh' | 'en' }) {
           </p>
         </div>
         <Link href="/app/assessment">
-          <Button size="sm" className="gap-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shrink-0">
+          <Button size="sm" className="gap-1.5 shrink-0">
             {language === 'zh' ? '开始' : 'Start'}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
@@ -159,7 +161,7 @@ export default function Dashboard() {
   );
   
   const { data: sessions, isLoading: sessionsLoading } = trpc.training.getSessions.useQuery(
-    { limit: 50 },
+    { limit: 1000 },
     { enabled: isAuthenticated }
   );
   
@@ -347,27 +349,24 @@ export default function Dashboard() {
   
   const progressData = calculateProgress();
   
-  // Training Calendar Data - Last 90 days
+  // Training Calendar Data
   const generateCalendarData = () => {
     const today = new Date();
     const calendarData: Record<string, number> = {};
-    
-    // Initialize last 90 days with 0
-    for (let i = 0; i < 90; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = format(date, 'yyyy-MM-dd');
+    const calendarStart = startOfWeek(subDays(today, (CALENDAR_WEEKS_TO_SHOW - 1) * 7), { weekStartsOn: 0 });
+
+    for (let i = 0; i < CALENDAR_WEEKS_TO_SHOW * 7; i++) {
+      const dateStr = format(addDays(calendarStart, i), 'yyyy-MM-dd');
       calendarData[dateStr] = 0;
     }
-    
-    // Count sessions per day
+
     completedSessions.forEach(session => {
-      const dateStr = format(new Date(session.startedAt), 'yyyy-MM-dd');
+      const dateStr = format(new Date(Number(session.startedAt)), 'yyyy-MM-dd');
       if (calendarData[dateStr] !== undefined) {
         calendarData[dateStr]++;
       }
     });
-    
+
     return calendarData;
   };
   
@@ -465,7 +464,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">{t.dashboard.totalGames}</span>
-                <span className="font-bold text-blue-600">{stats.totalSessions}</span>
+                <span className="font-bold text-primary">{stats.totalSessions}</span>
               </div>
               <div className="w-px h-4 bg-border" />
               <div className="flex items-center gap-1.5">
@@ -552,9 +551,9 @@ export default function Dashboard() {
       )}
 
       {/* Training Calendar */}
-      <Card>
-        <CardHeader className="px-4 py-3 pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+      <Card className="overflow-hidden">
+        <CardHeader className="px-6 py-5 pb-3">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
             {language === 'zh' ? '训练日历' : 'Training Calendar'}
             {currentStreak > 0 && (
               <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0 text-[11px] px-1.5 py-0 font-semibold">
@@ -563,8 +562,8 @@ export default function Dashboard() {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-4 pb-3 pt-0">
-          <TrainingCalendar data={calendarData} language={language} />
+        <CardContent className="px-6 pb-6 pt-0">
+          <TrainingCalendar data={calendarData} language={language} weeksToShow={CALENDAR_WEEKS_TO_SHOW} size="comfortable" />
         </CardContent>
       </Card>
       
@@ -592,7 +591,7 @@ export default function Dashboard() {
             )}
             {progressData.stabilityImprovement > 10 && (
               <div className="flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5 text-blue-500" />
+                <Activity className="h-3.5 w-3.5 text-primary" />
                 <span className="text-muted-foreground">{language === 'zh' ? '稳定性' : 'Stability'}</span>
                 <span className="font-bold text-emerald-600">+{progressData.stabilityImprovement.toFixed(0)}%</span>
               </div>
@@ -609,7 +608,7 @@ export default function Dashboard() {
               key={i}
               className={`flex items-start gap-2.5 p-3 rounded-lg border ${
                 insight.type === 'success' ? 'bg-emerald-500/5 border-emerald-500/20' :
-                insight.type === 'warning' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-blue-500/5 border-blue-500/20'
+                insight.type === 'warning' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-primary/5 border-primary/20'
               }`}
             >
               {insight.type === 'success' ? (
@@ -617,7 +616,7 @@ export default function Dashboard() {
               ) : insight.type === 'warning' ? (
                 <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
               ) : (
-                <Brain className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                <Brain className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-semibold leading-tight">{insight.title}</h4>
@@ -841,7 +840,7 @@ export default function Dashboard() {
                   </div>
                   <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
+                      className="h-full rounded-full bg-primary transition-[width] duration-500"
                       style={{ width: `${Math.max(2, game.accuracy)}%` }}
                     />
                   </div>

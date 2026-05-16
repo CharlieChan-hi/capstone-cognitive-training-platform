@@ -355,30 +355,30 @@ export default function StroopGame() {
   
   if (phase === 'playing') {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/app/games">
-              <Button variant="ghost" size="sm" className="text-slate-700 hover:text-slate-900">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <div>
-              <h1 className="font-semibold text-slate-900">{t.games.stroop.title}</h1>
-              <p className="text-sm text-slate-600">{t.app[difficulty]}</p>
+              <h1 className="font-semibold text-foreground">{t.games.stroop.title}</h1>
+              <p className="text-sm text-muted-foreground">{t.app[difficulty]}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <p className="text-xs text-slate-600">Trial</p>
-              <p className="text-xl font-bold text-slate-900">{currentTrial + 1}/{config.totalTrials}</p>
+              <p className="text-xs text-muted-foreground">Trial</p>
+              <p className="text-xl font-bold text-foreground">{currentTrial + 1}/{config.totalTrials}</p>
             </div>
             {/* Progress indicator */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600">{currentTrial + 1}/{config.totalTrials}</span>
-              <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <span className="text-xs text-muted-foreground">{currentTrial + 1}/{config.totalTrials}</span>
+              <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                  className="h-full bg-primary transition-[width] duration-300 ease-out"
                   style={{ width: `${((currentTrial + 1) / config.totalTrials) * 100}%` }}
                 />
               </div>
@@ -396,27 +396,29 @@ export default function StroopGame() {
                 {getDisplayText(currentStimulus.text)}
               </p>
             ) : (
-              <div className="w-4 h-4 rounded-full bg-slate-400" />
+              <div className="w-4 h-4 rounded-full bg-muted-foreground" />
             )}
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-2xl">
+          <div className="flex w-full max-w-5xl flex-wrap items-center justify-center gap-3">
             {COLORS.map((color) => (
               <button
                 key={color.name}
                 onClick={() => handleResponse(color.name)}
                 disabled={!currentStimulus}
-                className="h-16 rounded-lg bg-white border-2 border-slate-300 hover:bg-slate-100 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex h-16 w-40 items-center justify-center rounded-2xl border border-border bg-card transition-[background-color,border-color,transform] duration-200 ease-out hover:bg-muted/50 active:scale-[0.98] disabled:opacity-50 sm:w-44"
               >
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.value }} />
-                <span className="text-slate-900 font-medium">{getDisplayColorName(color.name)}</span>
+                <span className="inline-flex min-w-24 items-center justify-center gap-3">
+                  <span className="w-4 h-4 rounded-full" style={{ backgroundColor: color.value }} />
+                  <span className="text-foreground font-medium">{getDisplayColorName(color.name)}</span>
+                </span>
               </button>
             ))}
           </div>
         </div>
         
-        <div className="bg-white border-t border-slate-200 px-4 py-4 text-center">
-          <p className="text-slate-600">
+        <div className="bg-card border-t border-border px-4 py-4 text-center">
+          <p className="text-muted-foreground">
             {language === 'zh' ? '选择文字显示的颜色，而不是文字的含义' : 'Select the INK COLOR, not the word meaning'}
           </p>
         </div>
@@ -442,8 +444,8 @@ export default function StroopGame() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                      <Zap className="h-5 w-5 text-blue-600" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground"><MetricTooltip metric="meanRT">{t.history.meanRT}</MetricTooltip></p>
@@ -462,8 +464,8 @@ export default function StroopGame() {
                   </div>
                   
                   <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                      <Brain className="h-5 w-5 text-purple-600" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Brain className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground"><MetricTooltip metric="stroopEffect">{t.analytics.stroopEffect}</MetricTooltip></p>

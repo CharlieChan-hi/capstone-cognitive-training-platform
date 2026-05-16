@@ -124,7 +124,6 @@ export default function BaselineAssessment() {
       setStage("complete");
       saveProgress(currentTestIndex + 1, newCompleted, newResults);
       // TODO: 提交评估结果到后端
-      console.log("All tests completed:", newResults);
     } else {
       saveProgress(currentTestIndex + 1, newCompleted, newResults);
       setTimeout(() => {

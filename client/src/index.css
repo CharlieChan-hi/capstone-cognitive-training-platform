@@ -212,18 +212,18 @@
   
   /* Insight card styles */
   .insight-card {
-    @apply bg-card border-l-4 border-border rounded-r-lg p-4;
+    @apply bg-card border border-border rounded-lg p-4;
   }
-  
+
   .insight-card.positive {
-    @apply border-l-[oklch(0.65_0.15_145)];
+    @apply border-[oklch(0.65_0.15_145)];
   }
-  
+
   .insight-card.warning {
-    @apply border-l-[oklch(0.75_0.15_75)];
+    @apply border-[oklch(0.75_0.15_75)];
   }
-  
+
   .insight-card.attention {
-    @apply border-l-[oklch(0.55_0.2_30)];
+    @apply border-[oklch(0.55_0.2_30)];
   }
 }

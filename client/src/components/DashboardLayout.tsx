@@ -28,7 +28,7 @@ import {
   Languages,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useState, useCallback, useEffect, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
 /* ── 侧边栏宽度常量 ── */
@@ -38,6 +38,7 @@ const SIDEBAR_RAIL = 40;       // 图标居中轨道宽度
 
 /* ── 丝滑缓动曲线 ── */
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const SIDEBAR_TRANSITION = `320ms ${EASE}`;
 
 function useIsDesktop() {
   return useSyncExternalStore(
@@ -69,61 +70,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   });
 
-  /* ── 动画冻结：防止侧栏过渡期间图表连续 resize 导致卡顿 ── */
-  const [animating, setAnimating] = useState(false);
-  const mainRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>(0);
-  const timerARef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const timerBRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
   const toggleCollapsed = useCallback(() => {
-    const el = mainRef.current;
-    if (!el) return;
-
-    // ① 锁定当前宽度（阻止 ResponsiveContainer 连续 resize）
-    const currentW = el.offsetWidth;
-    el.style.transition = "none";
-    el.style.width = `${currentW}px`;
-    setAnimating(true);
-
     setCollapsed((prev) => {
       const next = !prev;
       try { localStorage.setItem("sidebar-collapsed", String(next)); } catch {}
       return next;
     });
-
-    // ② 侧栏动画快结束时，计算目标宽度并平滑过渡过去
-    clearTimeout(timerARef.current);
-    clearTimeout(timerBRef.current);
-    cancelAnimationFrame(rafRef.current);
-
-    timerARef.current = setTimeout(() => {
-      // 先临时放开拿到目标宽度，再锁回来
-      el.style.width = "";
-      const targetW = el.offsetWidth;
-      el.style.width = `${currentW}px`;
-
-      // 下一帧启动平滑过渡到目标宽度
-      rafRef.current = requestAnimationFrame(() => {
-        el.style.transition = `width 200ms ${EASE}`;
-        el.style.width = `${targetW}px`;
-
-        // 过渡完成后彻底释放
-        timerBRef.current = setTimeout(() => {
-          el.style.transition = "";
-          el.style.width = "";
-          setAnimating(false);
-        }, 220);
-      });
-    }, 400); // 侧栏 420ms 快结束时开始衔接
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(timerARef.current);
-      clearTimeout(timerBRef.current);
-      cancelAnimationFrame(rafRef.current);
-    };
   }, []);
 
   // Close mobile sidebar on route change
@@ -159,12 +111,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   /* ── 文字标签的公共过渡样式 ── */
   const labelStyle: React.CSSProperties = {
-    maxWidth: collapsed ? 0 : 160,
+    minWidth: 0,
     opacity: collapsed ? 0 : 1,
+    transform: collapsed ? "translateX(-4px)" : "translateX(0)",
     overflow: "hidden",
     whiteSpace: "nowrap",
     pointerEvents: collapsed ? "none" : "auto",
-    transition: `max-width 360ms ${EASE}, opacity 220ms ease`,
+    transition: collapsed
+      ? `opacity 120ms ease, transform 180ms ${EASE}`
+      : `opacity 180ms ease 110ms, transform 260ms ${EASE} 80ms`,
   };
 
   return (
@@ -173,7 +128,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       style={{
         display: "grid",
         gridTemplateColumns: isDesktop ? `${sidebarWidth}px minmax(0, 1fr)` : "1fr",
-        transition: `grid-template-columns 420ms ${EASE}`,
+        transition: isDesktop ? `grid-template-columns ${SIDEBAR_TRANSITION}` : undefined,
       }}
     >
       {/* ========== Desktop Sidebar ========== */}
@@ -184,6 +139,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             position: "sticky",
             top: 0,
             height: "100vh",
+            width: sidebarWidth,
+            transition: `width ${SIDEBAR_TRANSITION}`,
           }}
         >
           {/* Logo */}
@@ -194,7 +151,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               gridTemplateColumns: `${SIDEBAR_RAIL}px minmax(0, 1fr)`,
               paddingLeft: collapsed ? 16 : 20,
               paddingRight: collapsed ? 16 : 20,
-              transition: `padding 420ms ${EASE}`,
+              transition: `padding ${SIDEBAR_TRANSITION}`,
             }}
           >
             <img src="/logo.svg" alt="Logo" className="h-7 w-7 rounded shrink-0" />
@@ -226,8 +183,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       alignItems: "center",
                       gap: 8,
                       padding: "10px 0",
-                      maxWidth: collapsed ? 48 : "none",
-                      transition: `max-width 420ms ${EASE}`,
+                      width: "100%",
+                      maxWidth: collapsed ? 48 : SIDEBAR_EXPANDED - 24,
+                      transition: `max-width ${SIDEBAR_TRANSITION}`,
                     }}
                   >
                     <item.icon className="h-[18px] w-[18px] shrink-0 justify-self-center" />
@@ -259,13 +217,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {collapsed ? (
                 <ChevronsRight className="h-4 w-4 shrink-0 justify-self-center" />
               ) : (
-                <>
-                  <ChevronsLeft className="h-4 w-4 shrink-0 justify-self-center" />
-                  <span className="text-xs" style={labelStyle}>
-                    {"收起菜单"}
-                  </span>
-                </>
+                <ChevronsLeft className="h-4 w-4 shrink-0 justify-self-center" />
               )}
+              <span className="text-xs" style={labelStyle}>
+                {"收起菜单"}
+              </span>
             </Button>
           </div>
 
@@ -274,7 +230,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             className="border-t border-sidebar-border shrink-0"
             style={{
               padding: collapsed ? "12px 8px" : "16px",
-              transition: `padding 420ms ${EASE}`,
+              transition: `padding ${SIDEBAR_TRANSITION}`,
             }}
           >
             <DropdownMenu>
@@ -298,7 +254,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     style={{
                       maxWidth: collapsed ? 0 : 200,
                       opacity: collapsed ? 0 : 1,
-                      transition: `max-width 360ms ${EASE}, opacity 220ms ease`,
+                      transform: collapsed ? "translateX(-4px)" : "translateX(0)",
+                      transition: collapsed
+                        ? `max-width 180ms ${EASE}, opacity 120ms ease, transform 180ms ${EASE}`
+                        : `max-width 300ms ${EASE}, opacity 180ms ease 110ms, transform 260ms ${EASE} 80ms`,
                     }}
                   >
                     <div className="flex-1 text-left overflow-hidden">
@@ -412,7 +371,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* ========== Main content ========== */}
-      <div ref={mainRef} className="min-w-0" style={{ overflow: animating ? "hidden" : undefined }}>
+      <div className="min-w-0">
         {/* Mobile top bar only */}
         <header className="sticky top-0 z-30 h-14 bg-background/80 backdrop-blur-sm border-b border-border flex items-center px-4 lg:hidden">
           <Button

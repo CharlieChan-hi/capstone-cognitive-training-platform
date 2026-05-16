@@ -4,9 +4,11 @@ import { useState, useMemo } from 'react';
 interface TrainingCalendarProps {
   data: Record<string, number>; // { 'yyyy-MM-dd': count }
   language: 'zh' | 'en';
+  weeksToShow?: number;
+  size?: 'compact' | 'comfortable';
 }
 
-export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
+export function TrainingCalendar({ data, language, weeksToShow = 22, size = 'comfortable' }: TrainingCalendarProps) {
   const [hoveredCell, setHoveredCell] = useState<{ date: string; count: number; x: number; y: number } | null>(null);
 
   const getColor = (count: number) => {
@@ -20,7 +22,7 @@ export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
 
   const { weeks, monthLabels } = useMemo(() => {
     const today = new Date();
-    const numWeeks = 13;
+    const numWeeks = weeksToShow;
     const weeksData: { date: Date; count: number }[][] = [];
 
     // Start from numWeeks weeks ago, aligned to Sunday
@@ -57,7 +59,7 @@ export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
     });
 
     return { weeks: weeksData, monthLabels: labels };
-  }, [data, language]);
+  }, [data, language, weeksToShow]);
 
   const dayLabels = language === 'zh'
     ? ['', '一', '', '三', '', '五', '']
@@ -66,30 +68,27 @@ export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
   const totalSessions = Object.values(data).reduce((sum, v) => sum + v, 0);
   const activeDays = Object.values(data).filter(v => v > 0).length;
 
-  // Cell size in px
-  const cellSize = 14;
-  const cellGap = 3;
-  const labelWidth = 32;
+  const cellSize = size === 'comfortable' ? 18 : 14;
+  const cellGap = size === 'comfortable' ? 5 : 3;
+  const labelWidth = size === 'comfortable' ? 40 : 32;
   const numWeeks = weeks.length;
 
   return (
     <div className="select-none">
-      {/* Stats row */}
-      <div className="flex items-center gap-6 mb-4 text-sm text-muted-foreground">
+      <div className="mb-5 flex items-baseline gap-7 text-sm text-muted-foreground">
         <div>
-          <span className="font-semibold text-foreground text-lg">{totalSessions}</span>
+          <span className="font-semibold text-foreground text-2xl tabular-nums">{totalSessions}</span>
           <span className="ml-1.5">{language === 'zh' ? '次训练' : 'sessions'}</span>
         </div>
         <div className="w-px h-4 bg-border" />
         <div>
-          <span className="font-semibold text-foreground text-lg">{activeDays}</span>
+          <span className="font-semibold text-foreground text-2xl tabular-nums">{activeDays}</span>
           <span className="ml-1.5">{language === 'zh' ? '天活跃' : 'active days'}</span>
         </div>
       </div>
 
-      {/* Calendar container */}
-      <div className="overflow-x-auto">
-        <div className="relative" style={{ minWidth: labelWidth + numWeeks * (cellSize + cellGap) }}>
+      <div className="overflow-x-auto pb-1">
+        <div className="relative mx-auto" style={{ width: 'fit-content', minWidth: labelWidth + numWeeks * (cellSize + cellGap) }}>
           {/* Month labels row - absolutely positioned to align with grid columns */}
           <div className="relative mb-1.5 h-4" style={{ marginLeft: labelWidth }}>
             {monthLabels.map((label, i) => (
@@ -112,7 +111,7 @@ export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
               {dayLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="text-[11px] text-muted-foreground flex items-center justify-end pr-2"
+                  className="text-xs text-muted-foreground flex items-center justify-end pr-3"
                   style={{ height: cellSize }}
                 >
                   {label}
@@ -132,14 +131,14 @@ export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
                   return (
                     <div
                       key={dayIndex}
-                      className={`rounded-[3px] transition-all duration-150 ${
+                      className={`rounded-md transition-[background-color,box-shadow] duration-150 ${
                         isFuture
                           ? 'bg-transparent'
                           : getColor(cell.count)
                       } ${
                         isToday ? 'ring-2 ring-foreground/25 ring-offset-1 ring-offset-background' : ''
                       } ${
-                        !isFuture ? 'cursor-pointer hover:ring-2 hover:ring-emerald-400/60 hover:ring-offset-1 hover:ring-offset-background hover:scale-125' : ''
+                        !isFuture ? 'cursor-pointer hover:ring-2 hover:ring-emerald-400/60 hover:ring-offset-1 hover:ring-offset-background' : ''
                       }`}
                       style={{ width: cellSize, height: cellSize }}
                       onMouseEnter={(e) => {
@@ -182,13 +181,13 @@ export function TrainingCalendar({ data, language }: TrainingCalendarProps) {
       )}
 
       {/* Legend */}
-      <div className="flex items-center gap-2 mt-3 text-[11px] text-muted-foreground">
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <span>{language === 'zh' ? '少' : 'Less'}</span>
         <div className="flex gap-[3px]">
           {[0, 1, 2, 3, 4, 5].map(count => (
             <div
               key={count}
-              className={`rounded-[3px] ${getColor(count)}`}
+              className={`rounded-md ${getColor(count)}`}
               style={{ width: cellSize - 2, height: cellSize - 2 }}
             />
           ))}

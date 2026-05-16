@@ -29,8 +29,8 @@ const CONFIG = {
   // 每天训练次数范围
   sessionsPerDay: { min: 1, max: 3 },
 
-  // 是否清除旧数据再生成
-  clearOldData: true,
+  // 是否清除旧数据再生成；默认关闭，避免误运行覆盖本地训练数据
+  clearOldData: process.env.CLEAR_OLD_TRAINING_DATA === "true",
 
   // 改善趋势强度（0-1，越小越微弱自然）
   improvementStrength: 0.28,
@@ -618,6 +618,8 @@ async function main() {
       await conn.execute("DELETE FROM trial_data WHERE userId = ?", [CONFIG.userId]);
       await conn.execute("DELETE FROM training_sessions WHERE userId = ?", [CONFIG.userId]);
       console.log("   ✅ 旧数据已清除");
+    } else {
+      console.log("保留现有训练数据；如需重建模拟数据，请显式设置 CLEAR_OLD_TRAINING_DATA=true");
     }
 
     const gameTypes = ['gonogo', 'stroop', 'schulte', 'memory'] as const;

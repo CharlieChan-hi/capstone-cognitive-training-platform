@@ -313,7 +313,6 @@ export default function GoNoGoAssessment({ onComplete }: GoNoGoAssessmentProps =
     const metrics = calculateMetrics();
     
     // TODO: Save to backend via API
-    console.log("Go/No-Go Assessment Results:", metrics);
     
     // If onComplete callback is provided, call it instead of navigating
     if (onComplete) {

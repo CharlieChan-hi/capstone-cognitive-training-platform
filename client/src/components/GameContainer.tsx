@@ -48,19 +48,19 @@ export const GameContainer: React.FC<GameContainerProps> = ({
 
   if (isFinished) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="mx-auto max-w-2xl px-2">
         <div className="mb-6">
           <Link href="/app/games">
-            <div className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer">
+            <div className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
               <ArrowLeft className="w-4 h-4" />
               {t.app.backToGames}
             </div>
           </Link>
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">{t.app.sessionComplete}</h2>
-          <p className="text-slate-500 mb-8">{t.app.greatJob}</p>
+        <div className="rounded-3xl border border-border bg-card p-8 text-center shadow-none">
+          <h2 className="text-2xl font-bold text-foreground mb-2">{t.app.sessionComplete}</h2>
+          <p className="text-muted-foreground mb-8">{t.app.greatJob}</p>
           
           {results}
           
@@ -81,11 +81,11 @@ export const GameContainer: React.FC<GameContainerProps> = ({
   }
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-          <p className="text-slate-500">{description}</p>
+    <div className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-5xl flex-col px-1">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="max-w-3xl space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+          <p className="text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
         {!isPlaying && !countdown && (
           <Link href="/app/games">
@@ -94,22 +94,22 @@ export const GameContainer: React.FC<GameContainerProps> = ({
         )}
       </div>
 
-      <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 relative overflow-hidden flex flex-col">
+      <div className="relative flex flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-none">
         {!isPlaying && !countdown ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-white z-10">
-            <div className="max-w-md space-y-6">
-              <h3 className="text-xl font-semibold text-slate-900">{t.app.instructions}</h3>
-              <ul className="text-left space-y-3 text-slate-600 bg-slate-50 p-6 rounded-lg">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card p-6 text-center sm:p-8">
+            <div className="max-w-xl space-y-7">
+              <h3 className="text-xl font-semibold text-foreground">{t.app.instructions}</h3>
+              <ul className="space-y-3 rounded-3xl border border-border bg-muted/35 p-5 text-left text-sm leading-6 text-muted-foreground sm:p-6">
                 {instructions.map((inst, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
                       {i + 1}
                     </span>
                     <span>{inst}</span>
                   </li>
                 ))}
               </ul>
-              <Button size="lg" onClick={handleStartClick} className="w-full gap-2 text-lg h-12">
+              <Button size="lg" onClick={handleStartClick} className="h-12 w-full gap-2 rounded-full text-base">
                 <Play className="w-5 h-5" />
                 {t.app.start}
               </Button>
@@ -118,8 +118,8 @@ export const GameContainer: React.FC<GameContainerProps> = ({
         ) : null}
 
         {countdown !== null && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-20 backdrop-blur-sm">
-            <div className="text-9xl font-bold text-slate-900 animate-pulse">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90 backdrop-blur-sm">
+            <div className="text-8xl font-semibold tracking-tight text-foreground transition-opacity duration-200 sm:text-9xl">
               {countdown === 0 ? 'GO!' : countdown}
             </div>
           </div>

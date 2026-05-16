@@ -10,7 +10,9 @@ import { cn } from '@/lib/utils';
 import { MetricTooltip } from '@/components/MetricTooltip';
 import { ArrowLeft, RotateCcw, Home, TrendingUp, Award, Target, Zap, EyeOff, Eye } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
+
+type Difficulty = 'easy' | 'medium' | 'hard';
 
 interface TrialData {
   trialNumber: number;
@@ -34,7 +36,7 @@ interface GameResults {
   score: number;
 }
 
-const CONFIGS: Record<string, GameConfig> = {
+const CONFIGS: Record<Difficulty, GameConfig> = {
   easy: { gridSize: 4, totalNumbers: 16 },
   medium: { gridSize: 5, totalNumbers: 25 },
   hard: { gridSize: 6, totalNumbers: 36 },
@@ -43,7 +45,13 @@ const CONFIGS: Record<string, GameConfig> = {
 export default function SchulteGame() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const searchString = useSearch();
+
+  const urlParams = new URLSearchParams(searchString);
+  const difficultyParam = urlParams.get('difficulty') as Difficulty | null;
+  const difficulty: Difficulty = difficultyParam && ['easy', 'medium', 'hard'].includes(difficultyParam)
+    ? difficultyParam
+    : 'easy';
   const [phase, setPhase] = useState<'instructions' | 'playing' | 'finished'>('instructions');
   const [sessionId, setSessionId] = useState<number | null>(null);
   const sessionIdRef = useRef<number | null>(null);
@@ -275,12 +283,12 @@ export default function SchulteGame() {
                 <button
                   key={number}
                   onClick={() => handleCellClick(number)}
-                  className={`aspect-square rounded-lg font-bold text-lg transition-all duration-300 ${
+                  className={`aspect-square rounded-lg font-bold text-lg transition-[background-color,border-color,transform] duration-200 ease-out ${
                     isCorrectClick
                       ? 'bg-green-500 text-white scale-110 shadow-lg'
                       : isWrongClick
-                      ? 'bg-red-500 text-white animate-shake'
-                      : 'bg-slate-100 text-slate-900 hover:bg-slate-200 border-2 border-slate-300'
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-card text-foreground hover:bg-muted/50 border border-border'
                   }`}
                 >
                   {number}
@@ -314,7 +322,7 @@ export default function SchulteGame() {
     // 计算表现评级
     const getPerformanceRating = () => {
       if (results.accuracy >= 95 && results.meanRT <= 400) return { level: '优秀', color: 'text-emerald-600', bgColor: 'bg-emerald-50', icon: Award };
-      if (results.accuracy >= 85 && results.meanRT <= 600) return { level: '良好', color: 'text-blue-600', bgColor: 'bg-blue-50', icon: Target };
+      if (results.accuracy >= 85 && results.meanRT <= 600) return { level: '良好', color: 'text-primary', bgColor: 'bg-primary/5', icon: Target };
       return { level: '需改进', color: 'text-amber-600', bgColor: 'bg-amber-50', icon: TrendingUp };
     };
     const rating = getPerformanceRating();
@@ -344,28 +352,28 @@ export default function SchulteGame() {
             <CardContent className="space-y-6">
               {/* 核心指标 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-600 mb-1">
+                <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl">
+                  <div className="flex items-center gap-2 text-primary mb-1">
                     <Award className="h-4 w-4" />
                     <div className="text-sm font-medium">总分</div>
                   </div>
-                  <div className="text-3xl font-bold text-blue-700">{results.score}</div>
+                  <div className="text-3xl font-bold text-primary">{results.score}</div>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-lg">
+                <div className="bg-muted/35 border border-border p-4 rounded-2xl">
                   <div className="flex items-center gap-2 text-emerald-600 mb-1">
                     <Target className="h-4 w-4" />
                     <div className="text-sm font-medium"><MetricTooltip metric="accuracy">准确率</MetricTooltip></div>
                   </div>
                   <div className="text-3xl font-bold text-emerald-700">{results.accuracy.toFixed(1)}%</div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 text-purple-600 mb-1">
+                <div className="bg-primary/5 border border-primary/10 p-4 rounded-2xl">
+                  <div className="flex items-center gap-2 text-primary mb-1">
                     <Zap className="h-4 w-4" />
                     <div className="text-sm font-medium"><MetricTooltip metric="meanRT">平均反应时</MetricTooltip></div>
                   </div>
-                  <div className="text-3xl font-bold text-purple-700">{Math.round(results.meanRT)}ms</div>
+                  <div className="text-3xl font-bold text-primary">{Math.round(results.meanRT)}ms</div>
                 </div>
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg">
+                <div className="bg-muted/35 border border-border p-4 rounded-2xl">
                   <div className="flex items-center gap-2 text-amber-600 mb-1">
                     <TrendingUp className="h-4 w-4" />
                     <div className="text-sm font-medium">总耗时</div>
@@ -445,7 +453,7 @@ export default function SchulteGame() {
                   <span>错误点击</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5 bg-blue-500 border-dashed"></div>
+                  <div className="w-8 h-0.5 bg-primary/50 border-dashed"></div>
                   <span>平均反应时</span>
                 </div>
               </div>
@@ -462,7 +470,7 @@ export default function SchulteGame() {
                 <div className="space-y-2">
                   <h4 className="font-semibold text-sm text-muted-foreground">反应速度</h4>
                   <p className="text-sm leading-relaxed">
-                    您的平均反应时间为 <span className="font-semibold text-purple-600">{Math.round(results.meanRT)}ms</span>，
+                    您的平均反应时间为 <span className="font-semibold text-primary">{Math.round(results.meanRT)}ms</span>，
                     {results.meanRT <= 400 ? '反应速度非常快，视觉搜索能力优秀！' : 
                      results.meanRT <= 600 ? '反应速度良好，继续保持练习可进一步提升。' : 
                      '反应速度有提升空间，建议从简单难度开始练习。'}
@@ -489,7 +497,7 @@ export default function SchulteGame() {
                 <div className="space-y-2">
                   <h4 className="font-semibold text-sm text-muted-foreground">整体表现</h4>
                   <p className="text-sm leading-relaxed">
-                    总分 <span className="font-semibold text-blue-600">{results.score}</span> 分，
+                    总分 <span className="font-semibold text-primary">{results.score}</span> 分，
                     {results.score >= 85 ? '表现优异，您的注意力和视觉搜索能力都很出色！' : 
                      results.score >= 70 ? '表现良好，继续练习可以达到更高水平。' : 
                      '还有很大进步空间，坚持练习会看到明显提升。'}
@@ -518,8 +526,8 @@ export default function SchulteGame() {
                   </div>
                 )}
                 {results.meanRT > 500 && (
-                  <div className="flex gap-3 p-3 bg-purple-50 rounded-lg">
-                    <div className="text-purple-600 mt-0.5">⚡</div>
+                  <div className="flex gap-3 p-3 bg-primary/5 rounded-lg">
+                    <div className="text-primary mt-0.5">⚡</div>
                     <div className="flex-1">
                       <h5 className="font-semibold text-sm mb-1">提升反应速度</h5>
                       <p className="text-sm text-muted-foreground">
@@ -529,8 +537,8 @@ export default function SchulteGame() {
                   </div>
                 )}
                 {results.sdRT > results.meanRT * 0.3 && (
-                  <div className="flex gap-3 p-3 bg-blue-50 rounded-lg">
-                    <div className="text-blue-600 mt-0.5">🎯</div>
+                  <div className="flex gap-3 p-3 bg-primary/5 rounded-lg">
+                    <div className="text-primary mt-0.5">🎯</div>
                     <div className="flex-1">
                       <h5 className="font-semibold text-sm mb-1">增强注意力稳定性</h5>
                       <p className="text-sm text-muted-foreground">
@@ -550,8 +558,8 @@ export default function SchulteGame() {
                     </div>
                   </div>
                 )}
-                <div className="flex gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="text-slate-600 mt-0.5">📊</div>
+                <div className="flex gap-3 p-3 bg-muted/35 rounded-lg">
+                  <div className="text-muted-foreground mt-0.5">📊</div>
                   <div className="flex-1">
                     <h5 className="font-semibold text-sm mb-1">持续训练建议</h5>
                     <p className="text-sm text-muted-foreground">

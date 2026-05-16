@@ -328,7 +328,7 @@ export default function MemoryGame() {
   
   if (phase === 'preview') {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Eye className="h-6 w-6 text-primary" />
@@ -347,7 +347,7 @@ export default function MemoryGame() {
             return (
               <div
                 key={card.id}
-                className="aspect-square bg-white rounded-lg shadow-sm border-2 border-slate-200 flex items-center justify-center"
+                className="aspect-square bg-card rounded-2xl border border-border flex items-center justify-center"
               >
                 <Icon className="h-8 w-8 text-primary" />
               </div>
@@ -360,7 +360,7 @@ export default function MemoryGame() {
   
   if (phase === 'playing') {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/app/games">
@@ -387,9 +387,9 @@ export default function MemoryGame() {
             {/* Progress indicator */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{matchedPairs}/{config.pairs}</span>
-              <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-emerald-500 transition-all duration-300 ease-out"
+                  className="h-full bg-primary transition-[width] duration-300 ease-out"
                   style={{ width: `${(matchedPairs / config.pairs) * 100}%` }}
                 />
               </div>
@@ -412,10 +412,10 @@ export default function MemoryGame() {
                   onClick={() => handleCardClick(index)}
                   disabled={card.isMatched}
                   className={cn(
-                    "aspect-square rounded-lg shadow-sm border-2 flex items-center justify-center transition-all duration-200",
+                    "aspect-square rounded-2xl border flex items-center justify-center transition-[background-color,border-color,transform] duration-200 ease-out",
                     card.isMatched && "bg-emerald-100 border-emerald-300",
-                    !isRevealed && "bg-slate-200 border-slate-300 hover:bg-slate-300 cursor-pointer",
-                    isRevealed && !card.isMatched && "bg-white border-slate-200"
+                    !isRevealed && "bg-muted border-border hover:bg-muted/80 cursor-pointer",
+                    isRevealed && !card.isMatched && "bg-card border-border"
                   )}
                 >
                   {isRevealed && <Icon className={cn(
@@ -449,8 +449,8 @@ export default function MemoryGame() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-blue-600" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">{t.history.totalTime}</p>
@@ -479,8 +479,8 @@ export default function MemoryGame() {
                   </div>
                   
                   <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                      <BarChart3 className="h-5 w-5 text-purple-600" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <BarChart3 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Match Rate</p>

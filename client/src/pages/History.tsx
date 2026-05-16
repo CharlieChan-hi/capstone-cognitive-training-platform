@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, CheckCircle, XCircle, Clock, Target, Activity, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Clock, Target, Activity, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
@@ -20,10 +20,16 @@ export default function History() {
   const { isAuthenticated } = useAuth();
   const { t, language } = useLanguage();
   
+  const utils = trpc.useUtils();
   const { data: sessions, isLoading } = trpc.training.getSessions.useQuery(
     { limit: 100 },
     { enabled: isAuthenticated }
   );
+  const toggleSessionStats = trpc.training.toggleSessionStats.useMutation({
+    onSuccess: () => {
+      utils.training.getSessions.invalidate();
+    },
+  });
 
   const gameNames = getGameNames(language);
   const difficultyNames = getDifficultyNames(language);
@@ -31,7 +37,7 @@ export default function History() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -48,8 +54,8 @@ export default function History() {
       {completedSessions.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Clock className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-500">
+            <Clock className="w-12 h-12 text-muted-foreground/40 mb-4" />
+            <p className="text-muted-foreground">
               {language === 'zh' ? '暂无训练记录' : 'No training records yet'}
             </p>
           </CardContent>
@@ -59,12 +65,17 @@ export default function History() {
           <CardHeader>
             <CardTitle className="text-lg">
               {language === 'zh' ? '训练记录' : 'Training Records'}
-              <span className="ml-2 text-sm font-normal text-slate-500">
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
                 ({completedSessions.length} {language === 'zh' ? '条记录' : 'records'})
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {language === 'zh'
+                ? '可将明显异常的训练排除出统计分析，原始记录仍会保留。'
+                : 'Exclude clear outlier sessions from analytics while keeping the original record.'}
+            </p>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -74,7 +85,7 @@ export default function History() {
                   <TableHead>{t.history.totalTime}</TableHead>
                   <TableHead>{t.history.accuracy}</TableHead>
                   <TableHead>{t.history.meanRT}</TableHead>
-                  <TableHead className="text-right">{t.history.details}</TableHead>
+                  <TableHead className="text-right">{language === 'zh' ? '操作' : 'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -87,15 +98,15 @@ export default function History() {
                     : '-';
                   
                   return (
-                    <TableRow key={session.id} className={session.includedInStats === false ? 'opacity-50' : ''}>
-                      <TableCell className="font-mono text-slate-600">
+                    <TableRow key={session.id} className={session.includedInStats === false ? 'opacity-55' : ''}>
+                      <TableCell className="font-mono text-muted-foreground">
                         {format(new Date(session.startedAt), 'yyyy-MM-dd HH:mm')}
                       </TableCell>
-                      <TableCell className="font-medium text-slate-900">
+                      <TableCell className="font-medium text-foreground">
                         <span className="flex items-center gap-1.5">
                           {gameNames[session.gameType] || session.gameType}
                           {session.includedInStats === false && (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-600 border-amber-300">
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-600 border-amber-500/30 bg-amber-500/10">
                               <EyeOff className="h-2.5 w-2.5 mr-0.5" />
                               {language === 'zh' ? '已排除' : 'Excluded'}
                             </Badge>
@@ -114,9 +125,9 @@ export default function History() {
                       <TableCell>
                         <span className={cn(
                           "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                          accuracy >= 90 ? "bg-green-100 text-green-800" :
-                          accuracy >= 70 ? "bg-blue-100 text-blue-800" :
-                          "bg-slate-100 text-slate-800"
+                          accuracy >= 90 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" :
+                          accuracy >= 70 ? "bg-primary/10 text-primary" :
+                          "bg-muted text-muted-foreground"
                         )}>
                           {accuracy}%
                         </span>
@@ -125,7 +136,27 @@ export default function History() {
                         {session.meanRt ? `${Math.round(session.meanRt)}ms` : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <SessionDetailDialog session={session} gameNames={gameNames} difficultyNames={difficultyNames} language={language} />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={toggleSessionStats.isPending}
+                            onClick={() => toggleSessionStats.mutate({
+                              sessionId: session.id,
+                              includedInStats: session.includedInStats === false,
+                            })}
+                          >
+                            {session.includedInStats === false ? (
+                              <Eye className="w-4 h-4 mr-2" />
+                            ) : (
+                              <EyeOff className="w-4 h-4 mr-2" />
+                            )}
+                            {session.includedInStats === false
+                              ? (language === 'zh' ? '恢复' : 'Include')
+                              : (language === 'zh' ? '排除' : 'Exclude')}
+                          </Button>
+                          <SessionDetailDialog session={session} gameNames={gameNames} difficultyNames={difficultyNames} language={language} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -171,8 +202,8 @@ function SessionDetailDialog({
         </DialogHeader>
         
         <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500 flex items-center gap-1">
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {language === 'zh' ? '时间' : 'Time'}
             </div>
@@ -180,19 +211,19 @@ function SessionDetailDialog({
               {format(new Date(session.startedAt), 'MM/dd HH:mm')}
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500 flex items-center gap-1">
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <Target className="w-3 h-3" />
               {language === 'zh' ? '正确率' : 'Accuracy'}
             </div>
-            <div className="font-mono font-semibold text-blue-600">
+            <div className="font-mono font-semibold text-primary">
               {session.totalTrials && session.correctTrials
                 ? Math.round((session.correctTrials / session.totalTrials) * 100)
                 : 0}%
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500 flex items-center gap-1">
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <Activity className="w-3 h-3" />
               {language === 'zh' ? '平均RT' : 'Mean RT'}
             </div>
@@ -200,8 +231,8 @@ function SessionDetailDialog({
               {session.meanRt ? `${Math.round(session.meanRt)}ms` : '-'}
             </div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500">SD RT</div>
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground">SD RT</div>
             <div className="font-mono font-semibold">
               {session.sdRt ? `${Math.round(session.sdRt)}ms` : '-'}
             </div>
@@ -209,16 +240,16 @@ function SessionDetailDialog({
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500">{language === 'zh' ? '总试次' : 'Total Trials'}</div>
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground">{language === 'zh' ? '总试次' : 'Total Trials'}</div>
             <div className="font-mono font-semibold">{session.totalTrials || 0}</div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500">{language === 'zh' ? '正确' : 'Correct'}</div>
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground">{language === 'zh' ? '正确' : 'Correct'}</div>
             <div className="font-mono font-semibold text-green-600">{session.correctTrials || 0}</div>
           </div>
-          <div className="bg-slate-50 p-3 rounded-lg">
-            <div className="text-xs text-slate-500">{language === 'zh' ? '错误' : 'Errors'}</div>
+          <div className="bg-muted/35 p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground">{language === 'zh' ? '错误' : 'Errors'}</div>
             <div className="font-mono font-semibold text-red-600">
               {(session.totalTrials || 0) - (session.correctTrials || 0)}
             </div>
@@ -226,11 +257,11 @@ function SessionDetailDialog({
         </div>
 
         {session.gameMetrics && (
-          <div className="bg-slate-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-slate-700 mb-2">
+          <div className="bg-muted/35 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-foreground mb-2">
               {language === 'zh' ? '游戏特定指标' : 'Game-Specific Metrics'}
             </h4>
-            <pre className="text-xs text-slate-600 overflow-x-auto">
+            <pre className="text-xs text-muted-foreground overflow-x-auto">
               {JSON.stringify(session.gameMetrics, null, 2)}
             </pre>
           </div>

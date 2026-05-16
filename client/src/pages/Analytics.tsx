@@ -43,6 +43,41 @@ export default function Analytics() {
     });
   }, [sessions, gameFilter, difficultyFilter]);
 
+  const visualRtRange = useMemo(() => {
+    const rts = filteredSessions
+      .map(s => s.meanRt)
+      .filter((rt): rt is number => typeof rt === 'number' && Number.isFinite(rt) && rt > 0)
+      .sort((a, b) => a - b);
+
+    if (rts.length < 6) {
+      return { min: 0, max: Infinity, hidden: 0 };
+    }
+
+    const percentile = (p: number) => {
+      const index = Math.min(rts.length - 1, Math.max(0, Math.floor((rts.length - 1) * p)));
+      return rts[index];
+    };
+
+    const q1 = percentile(0.25);
+    const q3 = percentile(0.75);
+    const iqr = q3 - q1;
+    const lowerFence = Math.max(0, q1 - iqr * 1.5);
+    const upperFence = q3 + iqr * 1.5;
+    const p95 = percentile(0.95);
+    const max = Math.max(q3, Math.min(upperFence, p95 * 1.15));
+    const min = Math.max(0, lowerFence);
+    const hidden = rts.filter(rt => rt < min || rt > max).length;
+
+    return { min, max, hidden };
+  }, [filteredSessions]);
+
+  const visuallyFilteredSessions = useMemo(() => {
+    return filteredSessions.filter(s => {
+      if (!s.meanRt || s.meanRt <= 0) return true;
+      return s.meanRt >= visualRtRange.min && s.meanRt <= visualRtRange.max;
+    });
+  }, [filteredSessions, visualRtRange]);
+
   // Calculate statistics
   const stats = useMemo(() => {
     if (filteredSessions.length === 0) return null;
@@ -142,23 +177,29 @@ export default function Analytics() {
     }).filter(g => g.sessions > 0);
   }, [filteredSessions]);
 
-  // RT Distribution Histogram (bin RTs into 50ms intervals)
   const rtDistribution = useMemo(() => {
-    const rts = filteredSessions.filter(s => s.meanRt && s.meanRt > 0).map(s => s.meanRt!);
+    const rts = visuallyFilteredSessions.filter(s => s.meanRt && s.meanRt > 0).map(s => s.meanRt!);
     if (rts.length < 3) return [];
-    const minRT = Math.floor(Math.min(...rts) / 50) * 50;
-    const maxRT = Math.ceil(Math.max(...rts) / 50) * 50;
-    const bins: { range: string; count: number; center: number }[] = [];
-    for (let start = minRT; start < maxRT; start += 50) {
-      const count = rts.filter(rt => rt >= start && rt < start + 50).length;
-      bins.push({ range: `${start}-${start + 50}`, count, center: start + 25 });
-    }
-    return bins;
-  }, [filteredSessions]);
 
-  // Speed-Accuracy Tradeoff scatter data
+    const minRT = Math.floor(Math.min(...rts) / 100) * 100;
+    const maxRT = Math.ceil(Math.max(...rts) / 100) * 100;
+    const span = Math.max(100, maxRT - minRT);
+    const binSize = Math.max(50, Math.ceil(span / 12 / 50) * 50);
+    const bins: { range: string; count: number; center: number }[] = [];
+
+    for (let start = minRT; start <= maxRT; start += binSize) {
+      const end = start + binSize;
+      const count = rts.filter(rt => rt >= start && rt < end).length;
+      if (count > 0 || bins.length > 0) {
+        bins.push({ range: `${start}-${end}`, count, center: start + binSize / 2 });
+      }
+    }
+
+    return bins.filter((bin, index, arr) => bin.count > 0 || (index > 0 && index < arr.length - 1));
+  }, [visuallyFilteredSessions]);
+
   const speedAccuracyScatter = useMemo(() => {
-    return filteredSessions
+    return visuallyFilteredSessions
       .filter(s => s.meanRt && s.meanRt > 0 && s.accuracy !== null && s.accuracy !== undefined)
       .map(s => ({
         rt: Math.round(s.meanRt!),
@@ -167,7 +208,7 @@ export default function Analytics() {
         color: GAME_COLORS[s.gameType] || '#6366f1',
         difficulty: s.difficulty || 'medium',
       }));
-  }, [filteredSessions]);
+  }, [visuallyFilteredSessions]);
 
   // SDT metrics trend (Go/No-Go sessions with d', beta, fatigue)
   const sdtTrend = useMemo(() => {
@@ -532,6 +573,14 @@ export default function Analytics() {
         </Card>
       </div>
 
+      {visualRtRange.hidden > 0 && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          {language === 'zh'
+            ? `图表缩放已暂时隐藏 ${visualRtRange.hidden} 个离群点。若这些 session 确认异常，可在历史记录中排除。`
+            : `${visualRtRange.hidden} visual outlier(s) are hidden from chart scaling. Exclude them in History if they are invalid sessions.`}
+        </div>
+      )}
+
       {/* Scientific Visualizations: RT Distribution + Speed-Accuracy Tradeoff */}
       {(rtDistribution.length > 0 || speedAccuracyScatter.length > 3) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -789,7 +838,7 @@ function InsightItem({ type, title, desc }: { type: 'good' | 'warning' | 'info';
   const config = {
     good: { icon: <TrendingUp className="h-3.5 w-3.5" />, bg: 'bg-emerald-500/10', text: 'text-emerald-600' },
     warning: { icon: <AlertTriangle className="h-3.5 w-3.5" />, bg: 'bg-amber-500/10', text: 'text-amber-600' },
-    info: { icon: <Target className="h-3.5 w-3.5" />, bg: 'bg-blue-500/10', text: 'text-blue-600' },
+    info: { icon: <Target className="h-3.5 w-3.5" />, bg: 'bg-primary/10', text: 'text-primary' },
   }[type];
 
   return (

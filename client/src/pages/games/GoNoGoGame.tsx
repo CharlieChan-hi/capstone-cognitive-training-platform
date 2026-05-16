@@ -406,7 +406,7 @@ export default function GoNoGoGame() {
     return (
       <div 
         ref={gameContainerRef}
-        className="min-h-screen bg-slate-100 flex flex-col"
+        className="min-h-screen bg-background flex flex-col"
         tabIndex={0}
         onClick={handleResponse}
       >
@@ -430,9 +430,9 @@ export default function GoNoGoGame() {
             {/* Progress indicator */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{currentTrial + 1}/{config.totalTrials}</span>
-              <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-primary transition-all duration-300 ease-out"
+                  className="h-full bg-primary transition-[width] duration-300 ease-out"
                   style={{ width: `${((currentTrial + 1) / config.totalTrials) * 100}%` }}
                 />
               </div>
@@ -444,15 +444,15 @@ export default function GoNoGoGame() {
           <div className="relative">
             {showStimulus && (
               <div className={cn(
-                "w-40 h-40 rounded-full transition-all duration-100",
+                "w-40 h-40 rounded-full transition-[background-color,box-shadow,transform] duration-150 ease-out",
                 stimulusType === 'go' ? "bg-emerald-500" : "bg-red-500",
                 feedback === 'correct' && "ring-2 ring-emerald-200 scale-105",
-                feedback === 'wrong' && "ring-4 ring-red-300 animate-pulse"
+                feedback === 'wrong' && "ring-4 ring-destructive/25"
               )} />
             )}
             {!showStimulus && (
-              <div className="w-40 h-40 rounded-full border-4 border-slate-300 flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full bg-slate-400" />
+              <div className="w-40 h-40 rounded-full border-4 border-border flex items-center justify-center">
+                <div className="w-4 h-4 rounded-full bg-muted-foreground" />
               </div>
             )}
           </div>
@@ -486,8 +486,8 @@ export default function GoNoGoGame() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                      <Zap className="h-5 w-5 text-blue-600" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">{t.history.meanRT}</p>
@@ -567,7 +567,7 @@ export default function GoNoGoGame() {
               </div>
             )}
             {results && results.accuracy >= 70 && results.accuracy < 90 && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-300 text-center">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-primary text-center">
                 {language === 'zh' ? '不错的表现！多加练习可以进一步提升抑制控制能力。' : 'Good job! More practice will further improve your inhibitory control.'}
               </div>
             )}

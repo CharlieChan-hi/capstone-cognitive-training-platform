@@ -278,7 +278,6 @@ export default function StroopAssessment({ onComplete }: StroopAssessmentProps =
     const metrics = calculateMetrics();
     
     // TODO: Save to backend via API
-    console.log("Stroop Assessment Results:", metrics);
     
     // If onComplete callback is provided, call it instead of navigating
     if (onComplete) {

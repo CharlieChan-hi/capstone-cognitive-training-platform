@@ -50,7 +50,7 @@ export default function Home() {
       icon: Grid3X3,
       title: t.games.schulte.title,
       desc: t.games.schulte.desc,
-      color: 'bg-blue-500/10 text-blue-600',
+      color: 'bg-primary/10 text-primary',
     },
     {
       icon: Layers,
@@ -197,33 +197,6 @@ export default function Home() {
               </Card>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            {isAuthenticated ? t.app.dashboard : t.landing.hero.cta}
-          </h2>
-          <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8">
-            {t.landing.hero.subtitle}
-          </p>
-          {isAuthenticated ? (
-            <Link href="/app/dashboard">
-              <Button size="lg" variant="secondary" className="gap-2">
-                {t.app.dashboard}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          ) : (
-            <a href={getLoginUrl()}>
-              <Button size="lg" variant="secondary" className="gap-2">
-                {t.landing.hero.cta}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </a>
-          )}
         </div>
       </section>
 
