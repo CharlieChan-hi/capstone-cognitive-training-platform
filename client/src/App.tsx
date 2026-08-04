@@ -7,24 +7,29 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { DashboardLayoutSkeleton } from "./components/DashboardLayoutSkeleton";
+import { lazy, Suspense } from "react";
 
-// Lazy load pages
-import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
-import Games from "./pages/Games";
-import Analytics from "./pages/Analytics";
-import History from "./pages/History";
-import Admin from "./pages/Admin";
-import UserDetail from "./pages/UserDetail";
-import Profile from "./pages/Profile";
-import Leaderboard from "./pages/Leaderboard";
-import SchulteGame from "./pages/games/SchulteGame";
-import MemoryGame from "./pages/games/MemoryGame";
-import GoNoGoGame from "./pages/games/GoNoGoGame";
-import StroopGame from "./pages/games/StroopGame";
-import { DashboardLayout } from "./components/DashboardLayout";
-import BaselineAssessment from "./pages/BaselineAssessment";
-import AssessmentReport from "./pages/AssessmentReport";
+// Keep the route tree stable while loading each page only when it is visited.
+const Home = lazy(() => import("./pages/Home"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Games = lazy(() => import("./pages/Games"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const History = lazy(() => import("./pages/History"));
+const Admin = lazy(() => import("./pages/Admin"));
+const UserDetail = lazy(() => import("./pages/UserDetail"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const SchulteGame = lazy(() => import("./pages/games/SchulteGame"));
+const MemoryGame = lazy(() => import("./pages/games/MemoryGame"));
+const GoNoGoGame = lazy(() => import("./pages/games/GoNoGoGame"));
+const StroopGame = lazy(() => import("./pages/games/StroopGame"));
+const DashboardLayout = lazy(() =>
+  import("./components/DashboardLayout").then(module => ({
+    default: module.DashboardLayout,
+  }))
+);
+const BaselineAssessment = lazy(() => import("./pages/BaselineAssessment"));
+const AssessmentReport = lazy(() => import("./pages/AssessmentReport"));
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -187,7 +192,9 @@ function App() {
         <LanguageProvider>
           <TooltipProvider>
             <Toaster />
-            <Router />
+            <Suspense fallback={<DashboardLayoutSkeleton />}>
+              <Router />
+            </Suspense>
           </TooltipProvider>
         </LanguageProvider>
       </ThemeProvider>

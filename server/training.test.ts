@@ -165,6 +165,7 @@ describe("training.saveTrials", () => {
         sessionId: 123,
         trialNumber: 2,
         stimulusType: "distractor",
+        reactionTime: -1,
         correct: false,
       },
     ];
@@ -209,6 +210,41 @@ describe("training.saveTrials", () => {
       })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(db.createTrialData).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized trial batches before touching the database", async () => {
+    const ctx = createAuthContext(1);
+    const caller = appRouter.createCaller(ctx);
+    const trials = Array.from({ length: 1001 }, (_, index) => ({
+      sessionId: 123,
+      trialNumber: index + 1,
+      correct: true,
+    }));
+
+    await expect(caller.training.saveTrials({ trials })).rejects.toThrow();
+    expect(db.getTrainingSession).not.toHaveBeenCalled();
+    expect(db.createTrialData).not.toHaveBeenCalled();
+  });
+});
+
+describe("training.toggleSessionStats", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("uses a not-found error for another user's session", async () => {
+    const ctx = createAuthContext(1);
+    const caller = appRouter.createCaller(ctx);
+
+    vi.mocked(db.getTrainingSession).mockResolvedValue({ userId: 2 } as any);
+
+    await expect(
+      caller.training.toggleSessionStats({
+        sessionId: 123,
+        includedInStats: false,
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(db.updateTrainingSession).not.toHaveBeenCalled();
   });
 });
 

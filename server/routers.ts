@@ -17,40 +17,47 @@ async function assertOwnedSession(sessionId: number, userId: number) {
 // Input validation schemas
 const gameTypeSchema = z.enum(["schulte", "memory", "gonogo", "stroop"]);
 const difficultySchema = z.enum(["easy", "medium", "hard"]);
+const idSchema = z.number().int().positive();
+const timestampSchema = z.number().int().nonnegative();
+const finiteNumberSchema = z.number().finite();
+const nonNegativeNumberSchema = finiteNumberSchema.nonnegative();
+const limitSchema = z.number().int().min(1).max(1000);
+const offsetSchema = z.number().int().min(0).max(100_000);
 
 const createSessionSchema = z.object({
   gameType: gameTypeSchema,
   difficulty: difficultySchema,
-  startedAt: z.number(),
+  startedAt: timestampSchema,
 });
 
 const completeSessionSchema = z.object({
-  sessionId: z.number(),
-  completedAt: z.number(),
-  totalTrials: z.number().optional(),
-  correctTrials: z.number().optional(),
-  totalTime: z.number().optional(),
-  meanRt: z.number().optional(),
-  medianRt: z.number().optional(),
-  sdRt: z.number().optional(),
-  minRt: z.number().optional(),
-  maxRt: z.number().optional(),
-  rtv: z.number().optional(),
-  score: z.number().optional(),
-  accuracy: z.number().optional(),
+  sessionId: idSchema,
+  completedAt: timestampSchema,
+  totalTrials: z.number().int().nonnegative().max(100_000).optional(),
+  correctTrials: z.number().int().nonnegative().max(100_000).optional(),
+  totalTime: nonNegativeNumberSchema.optional(),
+  meanRt: nonNegativeNumberSchema.optional(),
+  medianRt: nonNegativeNumberSchema.optional(),
+  sdRt: nonNegativeNumberSchema.optional(),
+  minRt: nonNegativeNumberSchema.optional(),
+  maxRt: nonNegativeNumberSchema.optional(),
+  rtv: nonNegativeNumberSchema.optional(),
+  score: nonNegativeNumberSchema.optional(),
+  accuracy: z.number().finite().min(0).max(100).optional(),
   gameMetrics: z.any().optional(),
 });
 
 const trialDataSchema = z.object({
-  sessionId: z.number(),
-  trialNumber: z.number(),
+  sessionId: idSchema,
+  trialNumber: z.number().int().positive(),
   stimulusType: z.string().optional(),
   stimulusValue: z.string().optional(),
   responseType: z.string().optional(),
   responseValue: z.string().optional(),
-  reactionTime: z.number().optional(),
-  stimulusOnset: z.number().optional(),
-  responseTime: z.number().optional(),
+  // -1 is the existing sentinel for a missed response in Go/No-Go trials.
+  reactionTime: finiteNumberSchema.min(-1).optional(),
+  stimulusOnset: timestampSchema.optional(),
+  responseTime: timestampSchema.optional(),
   correct: z.boolean(),
   trialMetadata: z.any().optional(),
 });
@@ -58,10 +65,10 @@ const trialDataSchema = z.object({
 const sessionFilterSchema = z.object({
   gameType: gameTypeSchema.optional(),
   difficulty: difficultySchema.optional(),
-  startDate: z.number().optional(),
-  endDate: z.number().optional(),
-  limit: z.number().optional(),
-  offset: z.number().optional(),
+  startDate: timestampSchema.optional(),
+  endDate: timestampSchema.optional(),
+  limit: limitSchema.optional(),
+  offset: offsetSchema.optional(),
 });
 
 export const appRouter = router({
@@ -141,10 +148,10 @@ export const appRouter = router({
 
     // Save trial data
     saveTrials: protectedProcedure
-      .input(z.object({ trials: z.array(trialDataSchema) }))
+      .input(z.object({ trials: z.array(trialDataSchema).max(1000) }))
       .mutation(async ({ ctx, input }) => {
         const sessionIds = new Set(input.trials.map(trial => trial.sessionId));
-        for (const sessionId of sessionIds) {
+        for (const sessionId of Array.from(sessionIds)) {
           await assertOwnedSession(sessionId, ctx.user.id);
         }
 
@@ -158,11 +165,11 @@ export const appRouter = router({
 
     // Toggle whether a session is included in stats
     toggleSessionStats: protectedProcedure
-      .input(z.object({ sessionId: z.number(), includedInStats: z.boolean() }))
+      .input(z.object({ sessionId: idSchema, includedInStats: z.boolean() }))
       .mutation(async ({ ctx, input }) => {
         const session = await db.getTrainingSession(input.sessionId);
         if (!session || session.userId !== ctx.user.id) {
-          throw new Error('Session not found');
+          throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
         }
         await db.updateTrainingSession(input.sessionId, {
           includedInStats: input.includedInStats,
@@ -179,7 +186,7 @@ export const appRouter = router({
 
     // Get a specific session with trials
     getSession: protectedProcedure
-      .input(z.object({ sessionId: z.number() }))
+      .input(z.object({ sessionId: idSchema }))
       .query(async ({ ctx, input }) => {
         const session = await db.getTrainingSession(input.sessionId);
         if (!session || session.userId !== ctx.user.id) {
@@ -196,7 +203,7 @@ export const appRouter = router({
 
     // Get user's trial data
     getTrials: protectedProcedure
-      .input(z.object({ limit: z.number().optional() }).optional())
+      .input(z.object({ limit: limitSchema.optional() }).optional())
       .query(async ({ ctx, input }) => {
         return await db.getUserTrials(ctx.user.id, { limit: input?.limit || 500 });
       }),
@@ -207,8 +214,8 @@ export const appRouter = router({
     // Get all users
     getUsers: adminProcedure
       .input(z.object({
-        limit: z.number().optional(),
-        offset: z.number().optional(),
+        limit: limitSchema.optional(),
+        offset: offsetSchema.optional(),
         search: z.string().optional(),
       }).optional())
       .query(async ({ input }) => {
@@ -219,7 +226,7 @@ export const appRouter = router({
 
     // Get a specific user's data
     getUserData: adminProcedure
-      .input(z.object({ userId: z.number() }))
+      .input(z.object({ userId: idSchema }))
       .query(async ({ input }) => {
         const user = await db.getUserById(input.userId);
         const stats = await db.getUserStats(input.userId);
@@ -229,7 +236,7 @@ export const appRouter = router({
 
     // Get a user's session with trials (for admin)
     getUserSession: adminProcedure
-      .input(z.object({ sessionId: z.number() }))
+      .input(z.object({ sessionId: idSchema }))
       .query(async ({ input }) => {
         const session = await db.getTrainingSession(input.sessionId);
         if (!session) return null;
@@ -256,7 +263,7 @@ export const appRouter = router({
     getOverall: publicProcedure
       .input(z.object({
         timeRange: z.enum(['today', 'week', 'month', 'all']).optional(),
-        limit: z.number().optional(),
+        limit: limitSchema.optional(),
       }).optional())
       .query(async ({ input }) => {
         return await db.getOverallLeaderboard(input);
@@ -267,7 +274,7 @@ export const appRouter = router({
       .input(z.object({
         gameType: gameTypeSchema,
         timeRange: z.enum(['today', 'week', 'month', 'all']).optional(),
-        limit: z.number().optional(),
+        limit: limitSchema.optional(),
       }))
       .query(async ({ input }) => {
         return await db.getGameLeaderboard(input);
@@ -277,7 +284,7 @@ export const appRouter = router({
     getParticipation: publicProcedure
       .input(z.object({
         timeRange: z.enum(['today', 'week', 'month', 'all']).optional(),
-        limit: z.number().optional(),
+        limit: limitSchema.optional(),
       }).optional())
       .query(async ({ input }) => {
         return await db.getParticipationLeaderboard(input);

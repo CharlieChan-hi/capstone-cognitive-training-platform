@@ -177,9 +177,9 @@ export default function SchulteGame() {
           meanRt: meanRT,
           medianRt: medianRT,
           sdRt: sdRT,
-          minRt: Math.min(...rts),
-          maxRt: Math.max(...rts),
-          rtv: sdRT / meanRT,
+          minRt: rts.length > 0 ? Math.min(...rts) : undefined,
+          maxRt: rts.length > 0 ? Math.max(...rts) : undefined,
+          rtv: meanRT > 0 ? sdRT / meanRT : 0,
           score: scoreValue,
           accuracy: accuracyValue,
           gameMetrics: {
