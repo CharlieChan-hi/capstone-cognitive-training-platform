@@ -103,6 +103,8 @@ describe("training.completeSession", () => {
   it("completes a training session with metrics", async () => {
     const ctx = createAuthContext(1);
     const caller = appRouter.createCaller(ctx);
+
+    vi.mocked(db.getTrainingSession).mockResolvedValue({ userId: 1 } as any);
     
     vi.mocked(db.updateTrainingSession).mockResolvedValue(undefined);
 
@@ -147,6 +149,8 @@ describe("training.saveTrials", () => {
   it("saves trial data with user ID", async () => {
     const ctx = createAuthContext(1);
     const caller = appRouter.createCaller(ctx);
+
+    vi.mocked(db.getTrainingSession).mockResolvedValue({ userId: 1 } as any);
     
     vi.mocked(db.createTrialData).mockResolvedValue(undefined);
 
@@ -172,6 +176,39 @@ describe("training.saveTrials", () => {
       { ...trials[0], userId: 1 },
       { ...trials[1], userId: 1 },
     ]);
+  });
+
+  it("rejects completing another user's session", async () => {
+    const ctx = createAuthContext(1);
+    const caller = appRouter.createCaller(ctx);
+
+    vi.mocked(db.getTrainingSession).mockResolvedValue({ userId: 2 } as any);
+
+    await expect(
+      caller.training.completeSession({
+        sessionId: 123,
+        completedAt: Date.now(),
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(db.updateTrainingSession).not.toHaveBeenCalled();
+  });
+
+  it("rejects saving trials to another user's session", async () => {
+    const ctx = createAuthContext(1);
+    const caller = appRouter.createCaller(ctx);
+
+    vi.mocked(db.getTrainingSession).mockResolvedValue({ userId: 2 } as any);
+
+    await expect(
+      caller.training.saveTrials({
+        trials: [{
+          sessionId: 123,
+          trialNumber: 1,
+          correct: true,
+        }],
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(db.createTrialData).not.toHaveBeenCalled();
   });
 });
 

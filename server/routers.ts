@@ -2,8 +2,17 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
+
+async function assertOwnedSession(sessionId: number, userId: number) {
+  const session = await db.getTrainingSession(sessionId);
+  if (!session || session.userId !== userId) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
+  }
+  return session;
+}
 
 // Input validation schemas
 const gameTypeSchema = z.enum(["schulte", "memory", "gonogo", "stroop"]);
@@ -110,6 +119,7 @@ export const appRouter = router({
     completeSession: protectedProcedure
       .input(completeSessionSchema)
       .mutation(async ({ ctx, input }) => {
+        await assertOwnedSession(input.sessionId, ctx.user.id);
         await db.updateTrainingSession(input.sessionId, {
           completed: true,
           completedAt: input.completedAt,
@@ -133,6 +143,11 @@ export const appRouter = router({
     saveTrials: protectedProcedure
       .input(z.object({ trials: z.array(trialDataSchema) }))
       .mutation(async ({ ctx, input }) => {
+        const sessionIds = new Set(input.trials.map(trial => trial.sessionId));
+        for (const sessionId of sessionIds) {
+          await assertOwnedSession(sessionId, ctx.user.id);
+        }
+
         const trialsWithUser = input.trials.map(trial => ({
           ...trial,
           userId: ctx.user.id,

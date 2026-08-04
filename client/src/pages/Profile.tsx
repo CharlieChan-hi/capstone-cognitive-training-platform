@@ -8,6 +8,44 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Save, Loader2 } from 'lucide-react';
 
+const MAX_AVATAR_DIMENSION = 512;
+const AVATAR_QUALITY = 0.85;
+
+function fileToAvatarDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      const scale = Math.min(
+        1,
+        MAX_AVATAR_DIMENSION / image.naturalWidth,
+        MAX_AVATAR_DIMENSION / image.naturalHeight,
+      );
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+      const context = canvas.getContext('2d');
+      if (!context) {
+        reject(new Error('无法处理头像图片'));
+        return;
+      }
+
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', AVATAR_QUALITY));
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('无法读取头像图片'));
+    };
+    image.src = objectUrl;
+  });
+}
+
 
 export default function Profile() {
   const { user, loading: authLoading } = useAuth();
@@ -61,22 +99,9 @@ export default function Profile() {
     try {
       let avatarUrl = user.avatarUrl;
 
-      // 如果有新头像，先上传
+      // 将头像压缩为小型 data URL，直接复用已有的个人资料更新接口。
       if (avatarFile) {
-        const formData = new FormData();
-        formData.append('file', avatarFile);
-
-        const response = await fetch('/api/upload-avatar', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error('头像上传失败');
-        }
-
-        const data = await response.json();
-        avatarUrl = data.url;
+        avatarUrl = await fileToAvatarDataUrl(avatarFile);
       }
 
       // 更新个人资料
