@@ -4,9 +4,5 @@
   "buildCommand": "pnpm build",
   "env": {
     "NODE_ENV": "production"
-  },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/" }
-  ]
+  }
 }
