@@ -3,13 +3,10 @@ import { Link, useLocation } from "wouter";
 import {
   AlertCircle,
   ArrowLeft,
-  Brain,
-  CheckCircle2,
   Eye,
   EyeOff,
   Loader2,
   LockKeyhole,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,6 +131,9 @@ export default function Login() {
       return;
     }
 
+    if (isSignUp) {
+      toast.success("账号已创建，正在进入训练区。", { duration: 1800 });
+    }
     setLocation("/app/dashboard");
   };
 
@@ -164,7 +164,7 @@ export default function Login() {
     : isResetting
       ? "输入注册邮箱，我们会发送密码重置链接。"
       : isSignUp
-        ? "创建账号，开启专属于你的专注力训练。"
+        ? "注册后会直接进入训练区，下次使用邮箱和密码登录。"
         : "登录后，你的训练记录和评估报告只属于你。";
 
   const switchToLogin = () => {
@@ -177,17 +177,17 @@ export default function Login() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-100 px-4 py-5 sm:px-6 sm:py-8">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.12),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.10),transparent_34%)]" />
-      <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-6xl items-center justify-center sm:min-h-[calc(100vh-4rem)]">
+    <main className="relative min-h-screen overflow-hidden bg-[#f7f5ff] px-4 py-5 sm:px-6 sm:py-8">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.16),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(79,70,229,0.12),transparent_34%)]" />
+      <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-5xl items-center justify-center sm:min-h-[calc(100vh-4rem)]">
         <div className="grid w-full overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.12)] lg:grid-cols-[0.9fr_1.1fr]">
-          <aside className="relative hidden overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:min-h-[680px] lg:flex-col lg:justify-between xl:p-14">
-            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-            <div className="absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
+          <aside className="relative hidden overflow-hidden bg-[#24134f] p-10 text-white lg:flex lg:min-h-[620px] lg:flex-col lg:justify-between xl:p-12">
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-violet-500/25 blur-3xl" />
+            <div className="absolute -bottom-28 -left-24 h-80 w-80 rounded-full bg-indigo-400/15 blur-3xl" />
             <div className="relative">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
-                  <Brain className="h-6 w-6 text-cyan-300" aria-hidden="true" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-lg shadow-violet-950/30">
+                  <img src="/logo.svg" alt="" className="h-12 w-12 rounded-[13px]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold tracking-wide text-white/90">Charlie&apos;s FocusLab</p>
@@ -195,7 +195,7 @@ export default function Login() {
                 </div>
               </div>
               <div className="mt-24 max-w-sm">
-                <p className="text-sm font-medium text-cyan-300">专注，从了解自己开始</p>
+                <p className="text-sm font-medium text-violet-200">专注，从了解自己开始</p>
                 <h2 className="mt-4 text-4xl font-semibold leading-[1.12] tracking-[-0.04em] text-white">
                   让每一次训练，
                   <br />
@@ -208,11 +208,11 @@ export default function Login() {
             </div>
             <div className="relative grid gap-4 text-sm text-slate-300">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-400/20 text-xs text-violet-200">✓</span>
                 <span>训练记录与评估报告独立保存</span>
               </div>
               <div className="flex items-center gap-3">
-                <ShieldCheck className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-400/20 text-xs text-violet-200">✓</span>
                 <span>安全的账号认证与数据隔离</span>
               </div>
             </div>
@@ -229,8 +229,8 @@ export default function Login() {
 
             <div className="mx-auto w-full max-w-md">
               <div className="mb-9 lg:hidden">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 shadow-lg shadow-slate-950/10">
-                  <Brain className="h-6 w-6 text-cyan-300" aria-hidden="true" />
+                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-[20px] bg-white shadow-lg shadow-indigo-900/10 ring-1 ring-indigo-100">
+                  <img src="/logo.svg" alt="" className="h-14 w-14 rounded-[16px]" />
                 </div>
                 <p className="text-sm font-semibold text-slate-900">Charlie&apos;s FocusLab</p>
               </div>
@@ -246,9 +246,9 @@ export default function Login() {
                   <p>登录服务尚未配置，请先在 Vercel 环境变量中完成 Supabase 配置。</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="block text-[13px] font-semibold text-slate-700">邮箱</Label>
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                  <div className="space-y-2.5">
+                    <Label htmlFor="email" className="block text-sm font-semibold text-slate-800">邮箱</Label>
                     <Input
                       id="email"
                       type="email"
@@ -256,22 +256,22 @@ export default function Login() {
                       onChange={(e) => { setEmail(e.target.value); setFormError(""); }}
                       placeholder="you@example.com"
                       autoComplete="email"
-                      className="h-12 rounded-xl border-slate-200 bg-white px-4 text-[15px] shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-blue-500/20"
+                      className="h-[52px] rounded-xl border-slate-200 bg-white px-4 text-[15px] shadow-sm placeholder:text-slate-400 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                       autoFocus
                       required
                     />
                   </div>
 
                   {showPasswordField && (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <div className="flex items-center justify-between gap-4">
-                        <Label htmlFor="password" className="block text-[13px] font-semibold text-slate-700">
+                        <Label htmlFor="password" className="block text-sm font-semibold text-slate-800">
                           {isRecovery ? "新密码（至少 6 位）" : "密码（至少 6 位）"}
                         </Label>
                         {!isSignUp && !isRecovery && !isResetting && (
                           <button
                             type="button"
-                            className="text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+                            className="text-xs font-semibold text-indigo-600 transition-colors hover:text-indigo-800 hover:underline"
                             onClick={() => { setIsResetting(true); setNeedsConfirmation(false); setFormError(""); setPassword(""); }}
                           >
                             忘记密码？
@@ -286,13 +286,15 @@ export default function Login() {
                           onChange={(e) => { setPassword(e.target.value); setFormError(""); }}
                           autoComplete={isRecovery || isSignUp ? "new-password" : "current-password"}
                           minLength={6}
-                          className="h-12 rounded-xl border-slate-200 bg-white px-4 pr-12 text-[15px] shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-blue-500/20"
+                          className="h-[52px] rounded-xl border-slate-200 bg-white px-4 pr-14 text-[15px] shadow-sm placeholder:text-slate-400 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                           required
                         />
                         <button
                           type="button"
                           aria-label={showPassword ? "隐藏密码" : "显示密码"}
-                          className="absolute inset-y-0 right-2 inline-flex w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                          aria-pressed={showPassword}
+                          className="absolute right-1.5 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                          onMouseDown={(event) => event.preventDefault()}
                           onClick={() => setShowPassword((value) => !value)}
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
@@ -308,7 +310,7 @@ export default function Login() {
                     </div>
                   )}
 
-                  <Button type="submit" className="h-12 w-full rounded-xl bg-slate-950 text-[15px] font-semibold shadow-lg shadow-slate-950/10 transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-950/15" disabled={submitting}>
+                  <Button type="submit" className="h-[52px] w-full rounded-xl bg-indigo-600 text-[15px] font-semibold shadow-lg shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-600/25" disabled={submitting}>
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <LockKeyhole className="h-4 w-4" aria-hidden="true" />}
                     {isRecovery ? "保存新密码" : isResetting ? "发送重置邮件" : isSignUp ? "注册并开始" : "登录并开始"}
                   </Button>

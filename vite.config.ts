@@ -6,7 +6,13 @@ import { defineConfig } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin()];
+
+// The Manus visual-editor runtime is useful while developing in the editor,
+// but it is a large client-side payload and has no role in the live product.
+if (process.env.NODE_ENV === "development") {
+  plugins.push(vitePluginManusRuntime());
+}
 
 export default defineConfig({
   plugins,
@@ -23,6 +29,9 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Do not download charting code before a public page needs it.
+    // This keeps the login route's first paint independent from Recharts.
+    modulePreload: false,
     rollupOptions: {
       output: {
         manualChunks: {

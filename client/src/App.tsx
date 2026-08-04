@@ -61,6 +61,19 @@ function AuthUnavailable() {
   );
 }
 
+function AppLoading() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#f7f5ff] px-6">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <img src="/logo.svg" alt="Charlie&apos;s FocusLab" className="h-16 w-16 rounded-[18px] shadow-lg shadow-indigo-900/15" />
+        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-indigo-100">
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-indigo-500" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
@@ -227,7 +240,7 @@ function App() {
         <LanguageProvider>
           <TooltipProvider>
             <Toaster />
-            <Suspense fallback={<DashboardLayoutSkeleton />}>
+            <Suspense fallback={<AppLoading />}>
               <Router />
             </Suspense>
           </TooltipProvider>
