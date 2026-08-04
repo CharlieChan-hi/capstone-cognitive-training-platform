@@ -56,6 +56,11 @@ export default function Login() {
       return;
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFormError("请输入有效的邮箱地址。");
+      return;
+    }
+
     setSubmitting(true);
     if (isResetting && !isRecovery) {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -241,7 +246,7 @@ export default function Login() {
                   <p>登录服务尚未配置，请先在 Vercel 环境变量中完成 Supabase 配置。</p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5" noValidate={false}>
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="block text-[13px] font-semibold text-slate-700">邮箱</Label>
                     <Input
