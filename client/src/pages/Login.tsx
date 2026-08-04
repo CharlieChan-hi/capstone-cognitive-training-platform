@@ -55,6 +55,7 @@ export default function Login() {
 
     if (password.length < 6) {
       setSubmitting(false);
+      toast.error("密码至少需要 6 位字符。");
       return;
     }
 
