@@ -5,6 +5,7 @@
 # Build outputs
 dist/
 build/
+/public/
 *.dist
 
 # Environment variables
@@ -107,3 +108,4 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+.vercel

@@ -34,7 +34,9 @@ export async function createContext(
 
   // In local development without OAuth, use an explicitly non-admin test user
   // by default. Set DEV_ADMIN=true only when an admin flow is being tested.
-  if (!ENV.isProduction && !ENV.oAuthServerUrl) {
+  const isLocalDevelopment =
+    !ENV.isProduction && process.env.VERCEL !== "1" && !ENV.oAuthServerUrl;
+  if (isLocalDevelopment) {
     user = await getDevUser();
   } else {
     try {
