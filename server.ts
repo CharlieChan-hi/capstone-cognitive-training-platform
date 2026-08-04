@@ -1,4 +1,3 @@
-import "dotenv/config";
 import express from "express";
 import path from "node:path";
 import { createAppServer } from "./server/_core/app";
