@@ -18,6 +18,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
@@ -43,14 +44,19 @@ export default function Login() {
     if (result.error) {
       const message = result.error.message.toLowerCase();
       if (message.includes("email not confirmed")) {
+        setNeedsConfirmation(true);
         toast.error("邮箱还未确认，请先点击确认邮件中的链接后再登录。");
       } else if (message.includes("invalid login credentials")) {
+        setNeedsConfirmation(false);
         toast.error("邮箱或密码不正确；如果刚注册，请先完成邮箱确认。");
       } else {
+        setNeedsConfirmation(false);
         toast.error(result.error.message);
       }
       return;
     }
+
+    setNeedsConfirmation(false);
 
     if (isSignUp && !result.data.session) {
       toast.success(`确认邮件已发送至 ${email.trim()}，请点击邮件中的链接后再登录。`);
@@ -59,6 +65,25 @@ export default function Login() {
     }
 
     setLocation("/app/dashboard");
+  };
+
+  const resendConfirmation = async () => {
+    if (!supabase || !email.trim()) return;
+
+    setSubmitting(true);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: getAuthRedirectUrl() },
+    });
+    setSubmitting(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success(`新的确认邮件已发送至 ${email.trim()}。`);
   };
 
   return (
@@ -113,6 +138,18 @@ export default function Login() {
             {isSignUp ? "注册并开始" : "登录并开始"}
           </Button>
         </form>}
+
+        {needsConfirmation && isSupabaseAuthConfigured && (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3 w-full"
+            onClick={resendConfirmation}
+            disabled={submitting || !email.trim()}
+          >
+            重新发送确认邮件
+          </Button>
+        )}
 
         {isSupabaseAuthConfigured && (
           <button
