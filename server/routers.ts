@@ -23,6 +23,25 @@ const finiteNumberSchema = z.number().finite();
 const nonNegativeNumberSchema = finiteNumberSchema.nonnegative();
 const limitSchema = z.number().int().min(1).max(1000);
 const offsetSchema = z.number().int().min(0).max(100_000);
+const assessmentTaskSchema = z.object({
+  taskType: z.string().min(1).max(64),
+  taskOrder: z.number().int().min(1).max(6),
+  meanRt: nonNegativeNumberSchema.optional(),
+  sdRt: nonNegativeNumberSchema.optional(),
+  accuracy: z.number().finite().min(0).max(100).optional(),
+  dPrime: finiteNumberSchema.optional(),
+  hitRate: z.number().finite().min(0).max(1).optional(),
+  falseAlarmRate: z.number().finite().min(0).max(1).optional(),
+  taskMetrics: z.any().optional(),
+});
+const saveAssessmentSchema = z.object({
+  assessmentType: z.enum(["baseline", "followup"]).default("baseline"),
+  attentionScore: z.number().finite().min(0).max(100).optional(),
+  memoryScore: z.number().finite().min(0).max(100).optional(),
+  executiveFunctionScore: z.number().finite().min(0).max(100).optional(),
+  overallScore: z.number().finite().min(0).max(100).optional(),
+  tasks: z.array(assessmentTaskSchema).min(1).max(6),
+});
 
 const createSessionSchema = z.object({
   gameType: gameTypeSchema,
@@ -207,6 +226,19 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         return await db.getUserTrials(ctx.user.id, { limit: input?.limit || 500 });
       }),
+  }),
+
+  // Assessments are persisted and always queried through the authenticated user id.
+  assessment: router({
+    save: protectedProcedure
+      .input(saveAssessmentSchema)
+      .mutation(async ({ ctx, input }) => ({
+        assessmentId: await db.saveUserAssessment(ctx.user.id, input),
+      })),
+    list: protectedProcedure.query(({ ctx }) => db.getUserAssessments(ctx.user.id)),
+    get: protectedProcedure
+      .input(z.object({ assessmentId: idSchema }))
+      .query(({ ctx, input }) => db.getUserAssessment(ctx.user.id, input.assessmentId)),
   }),
 
   // Admin routes

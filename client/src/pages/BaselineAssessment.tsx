@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -72,6 +73,8 @@ export default function BaselineAssessment() {
   const [stage, setStage] = useState<AssessmentStage>("intro");
   const [completedTests, setCompletedTests] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<Record<string, any>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveAssessment = trpc.assessment.save.useMutation();
 
   // 从localStorage恢复进度
   useEffect(() => {
@@ -112,7 +115,7 @@ export default function BaselineAssessment() {
     setStage("testing");
   };
 
-  const handleTestComplete = (results: any) => {
+  const handleTestComplete = async (results: any) => {
     const newCompleted = [...completedTests, currentTest.id];
     const newResults = { ...testResults, [currentTest.id]: results };
     
@@ -123,7 +126,20 @@ export default function BaselineAssessment() {
     if (currentTestIndex === ASSESSMENT_TESTS.length - 1) {
       setStage("complete");
       saveProgress(currentTestIndex + 1, newCompleted, newResults);
-      // TODO: 提交评估结果到后端
+      try {
+        await saveAssessment.mutateAsync({
+          assessmentType: "baseline",
+          tasks: ASSESSMENT_TESTS.map((test, index) => ({
+            taskType: test.id,
+            taskOrder: index + 1,
+            taskMetrics: newResults[test.id],
+          })),
+        });
+        setSaveError(null);
+      } catch (error) {
+        console.error("Failed to save assessment:", error);
+        setSaveError("评估报告已保存在本机，但暂时未能同步到服务器。请保持登录后重试。");
+      }
     } else {
       saveProgress(currentTestIndex + 1, newCompleted, newResults);
       setTimeout(() => {
@@ -159,6 +175,11 @@ export default function BaselineAssessment() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {saveError && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                {saveError}
+              </div>
+            )}
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-gray-700 leading-relaxed">
                 您已经完成了包括持续注意力、工作记忆、抑制控制、认知灵活性、注意广度和视觉记忆在内的全面认知评估。

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +33,28 @@ export default function AssessmentReport() {
   const [dimensions, setDimensions] = useState<CognitiveDimension[]>([]);
   const [radarData, setRadarData] = useState<any[]>([]);
   const [overallScore, setOverallScore] = useState(0);
+  const { data: savedAssessments, isLoading: assessmentsLoading } = trpc.assessment.list.useQuery();
+  const latestAssessmentId = savedAssessments?.[0]?.id;
+  const { data: latestAssessment } = trpc.assessment.get.useQuery(
+    { assessmentId: latestAssessmentId ?? 0 },
+    { enabled: !!latestAssessmentId },
+  );
 
   useEffect(() => {
-    // 从localStorage读取评估结果
+    // Prefer the local draft for the current browser, then use the
+    // authenticated user's server copy for cross-device access.
     const savedProgress = localStorage.getItem("assessment_progress");
+    if (!savedProgress && assessmentsLoading) return;
+    if (!savedProgress && latestAssessment) {
+      const testResults = Object.fromEntries(
+        latestAssessment.tasks.map(task => [task.taskType, task.taskMetrics]),
+      );
+      const calculatedDimensions = calculateDimensions(testResults as unknown as AssessmentResults);
+      setDimensions(calculatedDimensions);
+      setRadarData(calculatedDimensions.map(d => ({ dimension: d.shortName, score: d.score, fullMark: 100 })));
+      setOverallScore(Math.round(calculatedDimensions.reduce((sum, d) => sum + d.score, 0) / calculatedDimensions.length));
+      return;
+    }
     if (!savedProgress) {
       // 如果没有评估结果，跳转到评估页面
       setLocation("/app/assessment");
@@ -62,7 +81,7 @@ export default function AssessmentReport() {
       console.error("Failed to parse assessment results:", e);
       setLocation("/app/assessment");
     }
-  }, [setLocation]);
+  }, [assessmentsLoading, latestAssessment, setLocation]);
 
   // 计算各维度标准化分数
   const calculateDimensions = (results: AssessmentResults): CognitiveDimension[] => {
@@ -455,7 +474,7 @@ export default function AssessmentReport() {
         {/* 说明文字 */}
         <div className="mt-8 text-center text-sm text-muted-foreground">
           <p>建议每7-14天进行一次评估，追踪训练效果</p>
-          <p className="mt-1">评估数据仅保存在本地，不会上传到服务器</p>
+          <p className="mt-1">评估结果会与您的账号绑定保存；未登录或同步失败时会保留本机草稿</p>
         </div>
       </div>
     </div>

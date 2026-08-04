@@ -18,7 +18,7 @@ async function getDevUser(): Promise<User | null> {
       openId,
       name: "开发测试用户",
       email: "dev@localhost",
-      role: "admin",
+      role: process.env.DEV_ADMIN === "true" ? "admin" : "user",
       loginMethod: "local",
       lastSignedIn: new Date(),
     });
@@ -32,7 +32,8 @@ export async function createContext(
 ): Promise<TrpcContext> {
   let user: User | null = null;
 
-  // In development mode without OAuth, auto-login as dev user
+  // In local development without OAuth, use an explicitly non-admin test user
+  // by default. Set DEV_ADMIN=true only when an admin flow is being tested.
   if (!ENV.isProduction && !ENV.oAuthServerUrl) {
     user = await getDevUser();
   } else {

@@ -1,4 +1,4 @@
-import { eq, desc, and, gte, lte, sql, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, count, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, 
@@ -8,7 +8,11 @@ import {
   InsertTrainingSession,
   InsertTrialData,
   TrainingSession,
-  TrialData
+  TrialData,
+  baselineAssessments,
+  assessmentTasks,
+  InsertBaselineAssessment,
+  InsertAssessmentTask,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -141,7 +145,19 @@ export async function getAllUsers(options?: {
   const db = await getDb();
   if (!db) return [];
 
-  let query = db.select().from(users).orderBy(desc(users.lastSignedIn));
+  let query = db.select().from(users);
+
+  const search = options?.search?.trim();
+  if (search) {
+    const pattern = `%${search}%`;
+    query = query.where(or(
+      like(users.name, pattern),
+      like(users.displayName, pattern),
+      like(users.email, pattern),
+    )) as typeof query;
+  }
+
+  query = query.orderBy(desc(users.lastSignedIn)) as typeof query;
   
   if (options?.limit) {
     query = query.limit(options.limit) as typeof query;
@@ -159,6 +175,95 @@ export async function getUserCount() {
 
   const result = await db.select({ count: count() }).from(users);
   return result[0]?.count ?? 0;
+}
+
+// ============ Assessment Functions ============
+
+export type SaveAssessmentInput = {
+  assessmentType?: "baseline" | "followup";
+  attentionScore?: number;
+  memoryScore?: number;
+  executiveFunctionScore?: number;
+  overallScore?: number;
+  tasks: Array<{
+    taskType: string;
+    taskOrder: number;
+    meanRt?: number;
+    sdRt?: number;
+    accuracy?: number;
+    dPrime?: number;
+    hitRate?: number;
+    falseAlarmRate?: number;
+    taskMetrics?: unknown;
+  }>;
+};
+
+export async function saveUserAssessment(
+  userId: number,
+  input: SaveAssessmentInput,
+): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return db.transaction(async (tx) => {
+    const assessment: InsertBaselineAssessment = {
+      userId,
+      assessmentType: input.assessmentType ?? "baseline",
+      completed: true,
+      attentionScore: input.attentionScore,
+      memoryScore: input.memoryScore,
+      executiveFunctionScore: input.executiveFunctionScore,
+      overallScore: input.overallScore,
+    };
+    const result = await tx.insert(baselineAssessments).values(assessment);
+    const assessmentId = Number(result[0].insertId);
+
+    const tasks: InsertAssessmentTask[] = input.tasks.map(task => ({
+      assessmentId,
+      taskType: task.taskType,
+      taskOrder: task.taskOrder,
+      meanRt: task.meanRt,
+      sdRt: task.sdRt,
+      accuracy: task.accuracy,
+      dPrime: task.dPrime,
+      hitRate: task.hitRate,
+      falseAlarmRate: task.falseAlarmRate,
+      taskMetrics: task.taskMetrics,
+    }));
+    await tx.insert(assessmentTasks).values(tasks);
+    return assessmentId;
+  });
+}
+
+export async function getUserAssessments(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select()
+    .from(baselineAssessments)
+    .where(eq(baselineAssessments.userId, userId))
+    .orderBy(desc(baselineAssessments.assessmentDate));
+}
+
+export async function getUserAssessment(userId: number, assessmentId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const assessments = await db.select()
+    .from(baselineAssessments)
+    .where(and(
+      eq(baselineAssessments.id, assessmentId),
+      eq(baselineAssessments.userId, userId),
+    ))
+    .limit(1);
+  const assessment = assessments[0];
+  if (!assessment) return null;
+
+  const tasks = await db.select()
+    .from(assessmentTasks)
+    .where(eq(assessmentTasks.assessmentId, assessmentId))
+    .orderBy(assessmentTasks.taskOrder);
+  return { assessment, tasks };
 }
 
 // ============ Training Session Functions ============
@@ -368,7 +473,8 @@ export async function getUserStats(userId: number) {
   const db = await getDb();
   if (!db) return null;
 
-  const sessions = await getUserTrainingSessions(userId, { limit: 1000 });
+  const sessions = (await getUserTrainingSessions(userId, { limit: 1000 }))
+    .filter(session => session.includedInStats !== false);
   
   if (sessions.length === 0) {
     return {
@@ -462,7 +568,10 @@ export async function getOverallLeaderboard(params?: {
 
   try {
     // Build where conditions
-    const whereConditions = [eq(trainingSessions.completed, true)];
+    const whereConditions = [
+      eq(trainingSessions.completed, true),
+      eq(trainingSessions.includedInStats, true),
+    ];
     if (startTime) {
       whereConditions.push(gte(trainingSessions.startedAt, startTime));
     }
@@ -572,6 +681,7 @@ export async function getGameLeaderboard(params: {
     // Build where conditions
     const whereConditions = [
       eq(trainingSessions.completed, true),
+      eq(trainingSessions.includedInStats, true),
       eq(trainingSessions.gameType, gameType)
     ];
     if (startTime) {
@@ -643,7 +753,10 @@ export async function getParticipationLeaderboard(params?: {
 
   try {
     // Build where conditions
-    const whereConditions = [eq(trainingSessions.completed, true)];
+    const whereConditions = [
+      eq(trainingSessions.completed, true),
+      eq(trainingSessions.includedInStats, true),
+    ];
     if (startTime) {
       whereConditions.push(gte(trainingSessions.startedAt, startTime));
     }

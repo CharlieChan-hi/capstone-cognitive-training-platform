@@ -13,6 +13,13 @@ import { PageHeader } from '@/components/PageHeader';
 export default function Admin() {
   const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: globalStats, isLoading: statsLoading } = trpc.admin.getGlobalStats.useQuery();
+  const { data: usersData, isLoading: usersLoading } = trpc.admin.getUsers.useQuery({
+    limit: 20,
+    search: searchQuery.trim() || undefined,
+  }, { enabled: !!user && user.role === 'admin' });
 
   // 权限检查：只允许admin角色访问（chenqiqiqi1015@gmail.com已设置为admin）
   if (authLoading) {
@@ -39,11 +46,6 @@ export default function Admin() {
       </div>
     );
   }
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data: globalStats, isLoading: statsLoading } = trpc.admin.getGlobalStats.useQuery();
-  const { data: usersData, isLoading: usersLoading } = trpc.admin.getUsers.useQuery({ limit: 20 });
-
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('zh-CN', {
       year: 'numeric',

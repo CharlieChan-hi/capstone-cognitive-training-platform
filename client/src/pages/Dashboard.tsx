@@ -31,9 +31,10 @@ function AssessmentCard({ language }: { language: 'zh' | 'en' }) {
     completedAt?: string;
     overallScore?: number;
   } | null>(null);
+  const { data: savedAssessments, isLoading: assessmentsLoading } = trpc.assessment.list.useQuery();
 
   useEffect(() => {
-    // Check if user has completed assessment
+    // Check the local draft first; use the server list for cross-device access.
     const savedProgress = localStorage.getItem("assessment_progress");
     if (savedProgress) {
       try {
@@ -87,10 +88,15 @@ function AssessmentCard({ language }: { language: 'zh' | 'en' }) {
       } catch (e) {
         setAssessmentStatus({ completed: false });
       }
+    } else if (!assessmentsLoading) {
+      const latest = savedAssessments?.[0];
+      setAssessmentStatus(latest?.completed
+        ? { completed: true, completedAt: String(latest.assessmentDate), overallScore: latest.overallScore == null ? undefined : Math.round(latest.overallScore) }
+        : { completed: false });
     } else {
-      setAssessmentStatus({ completed: false });
+      setAssessmentStatus(null);
     }
-  }, []);
+  }, [assessmentsLoading, savedAssessments]);
 
   if (!assessmentStatus) {
     return null; // Loading
@@ -129,7 +135,7 @@ function AssessmentCard({ language }: { language: 'zh' | 'en' }) {
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold">{language === 'zh' ? '评估已完成' : 'Assessment Done'}</p>
           <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] px-1.5 py-0">
-            {assessmentStatus.overallScore}/100
+            {assessmentStatus.overallScore ?? '—'}/100
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground">

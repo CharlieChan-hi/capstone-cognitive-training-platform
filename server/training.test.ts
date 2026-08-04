@@ -13,6 +13,9 @@ vi.mock("./db", () => ({
   getSessionTrials: vi.fn(),
   getUserStats: vi.fn(),
   getUserTrials: vi.fn(),
+  saveUserAssessment: vi.fn(),
+  getUserAssessments: vi.fn(),
+  getUserAssessment: vi.fn(),
 }));
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
@@ -92,6 +95,41 @@ describe("training.createSession", () => {
         startedAt: Date.now(),
       })
     ).rejects.toThrow();
+  });
+});
+
+describe("assessment", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("persists assessment tasks under the authenticated user", async () => {
+    const caller = appRouter.createCaller(createAuthContext(7));
+    vi.mocked(db.saveUserAssessment).mockResolvedValue(42);
+
+    const result = await caller.assessment.save({
+      assessmentType: "baseline",
+      tasks: [{
+        taskType: "cpt",
+        taskOrder: 1,
+        taskMetrics: { accuracy: 0.9 },
+      }],
+    });
+
+    expect(result).toEqual({ assessmentId: 42 });
+    expect(db.saveUserAssessment).toHaveBeenCalledWith(7, expect.objectContaining({
+      assessmentType: "baseline",
+      tasks: expect.any(Array),
+    }));
+  });
+
+  it("rejects assessment writes without a session", async () => {
+    const caller = appRouter.createCaller(createUnauthContext());
+    await expect(caller.assessment.save({
+      assessmentType: "baseline",
+      tasks: [{ taskType: "cpt", taskOrder: 1 }],
+    })).rejects.toThrow();
+    expect(db.saveUserAssessment).not.toHaveBeenCalled();
   });
 });
 
