@@ -32,13 +32,6 @@ export default defineConfig({
     // Do not download charting code before a public page needs it.
     // This keeps the login route's first paint independent from Recharts.
     modulePreload: false,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          charts: ["recharts"],
-        },
-      },
-    },
   },
   server: {
     host: true,
