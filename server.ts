@@ -1,6 +1,6 @@
 import express from "express";
 import path from "node:path";
-import { createAppServer } from "./server/_core/app";
+import { createAppServer } from "./server/_core/app.js";
 
 // Vercel uses this file as the Express Function entrypoint. The local
 // startServer() path remains responsible for long-running local processes.

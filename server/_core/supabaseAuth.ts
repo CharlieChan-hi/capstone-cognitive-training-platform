@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Request } from "express";
-import type { User } from "../../drizzle/schema";
-import * as db from "../db";
-import { ENV } from "./env";
+import type { User } from "../../drizzle/schema.js";
+import * as db from "../db.js";
+import { ENV } from "./env.js";
 
 const supabase =
   ENV.supabaseUrl && ENV.supabaseServiceRoleKey
