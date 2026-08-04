@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "./const";
 import { DashboardLayoutSkeleton } from "./components/DashboardLayoutSkeleton";
 import { lazy, Suspense } from "react";
 
@@ -31,6 +32,34 @@ const DashboardLayout = lazy(() =>
 const BaselineAssessment = lazy(() => import("./pages/BaselineAssessment"));
 const AssessmentReport = lazy(() => import("./pages/AssessmentReport"));
 
+function isAuthUnavailableInPreview() {
+  return (
+    typeof window !== "undefined" &&
+    getLoginUrl() === window.location.pathname
+  );
+}
+
+function AuthUnavailable() {
+  return (
+    <main className="min-h-screen bg-background flex items-center justify-center p-6">
+      <section className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+        <h1 className="text-2xl font-semibold text-foreground">
+          登录服务尚未配置
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          当前预览环境没有 OAuth 登录配置，因此暂时无法进入训练区。请返回首页，或配置登录服务后再试。
+        </p>
+        <a
+          href="/"
+          className="mt-6 inline-flex h-10 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          返回首页
+        </a>
+      </section>
+    </main>
+  );
+}
+
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
@@ -40,7 +69,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
   
   if (!user) {
-    return null; // Will redirect via useAuth
+    return isAuthUnavailableInPreview() ? <AuthUnavailable /> : null;
   }
   
   return <>{children}</>;
@@ -54,7 +83,11 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <DashboardLayoutSkeleton />;
   }
   
-  if (!user || user.role !== 'admin') {
+  if (!user) {
+    return isAuthUnavailableInPreview() ? <AuthUnavailable /> : null;
+  }
+
+  if (user.role !== 'admin') {
     return <Redirect to="/app/dashboard" />;
   }
   
