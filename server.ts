@@ -14,7 +14,14 @@ const publicPath = path.resolve(process.cwd(), "public");
 // detected Vercel framework, the platform filesystem route is not guaranteed
 // to run before this function, so relying on it can return index.html for a
 // JavaScript request and leave the browser with a blank page.
-app.use(express.static(publicPath, { index: false }));
+app.use(express.static(publicPath, {
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html")) {
+      res.setHeader("Cache-Control", "no-store");
+    }
+  },
+}));
 
 // Keep the client-side wouter routes working when a user opens a deep link
 // directly, but never turn a missing asset/API request into an HTML response.
@@ -28,6 +35,7 @@ app.use("*", (req, res) => {
     return;
   }
 
+  res.setHeader("Cache-Control", "no-store");
   res.sendFile(path.join(publicPath, "index.html"));
 });
 

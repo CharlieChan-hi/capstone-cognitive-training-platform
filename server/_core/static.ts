@@ -13,10 +13,28 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-store");
+      }
+    },
+  }));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // Keep client-side routes working, but do not turn missing assets/API calls
+  // into an HTML response that causes a blank page in the browser.
+  app.use("*", (req, res) => {
+    const acceptsHtml = req.method === "GET" &&
+      typeof req.headers.accept === "string" &&
+      req.headers.accept.includes("text/html");
+
+    if (!acceptsHtml || req.path.startsWith("/assets/")) {
+      res.status(404).end();
+      return;
+    }
+
+    res.setHeader("Cache-Control", "no-store");
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
