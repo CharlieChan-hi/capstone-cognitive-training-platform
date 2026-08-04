@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1785834634670,
+      "tag": "0000_initial_postgres",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785834679583,
+      "tag": "0001_add_postgres_enums",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,50 +1,49 @@
-import React, { useState, useRef } from 'react';
-import { useLocation } from 'wouter';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { Brain, Upload, FileJson } from 'lucide-react';
-import { importData } from '@/lib/storage';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { Brain, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { supabase, isSupabaseAuthConfigured } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const { login } = useAuth();
-  const { t } = useLanguage();
   const [, setLocation] = useLocation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return;
-    
-    login(username.trim());
-    setLocation('/app/dashboard');
-  };
+  useEffect(() => {
+    if (!supabase) return;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setLocation("/app/dashboard");
+    });
+  }, [setLocation]);
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!supabase || !email.trim() || password.length < 6) return;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    setSubmitting(true);
+    const result = isSignUp
+      ? await supabase.auth.signUp({ email: email.trim(), password })
+      : await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setSubmitting(false);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        const { added, merged } = importData(content);
-        toast.success(`Import successful: Added ${added} users, Merged ${merged} users.`);
-      } catch (error) {
-        toast.error('Failed to import data. Invalid JSON file.');
-      }
-      // Reset input
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-    reader.readAsText(file);
+    if (result.error) {
+      toast.error(result.error.message);
+      return;
+    }
+
+    if (isSignUp && !result.data.session) {
+      toast.success("注册成功，请查收邮箱并完成确认后登录。");
+      setIsSignUp(false);
+      return;
+    }
+
+    setLocation("/app/dashboard");
   };
 
   return (
@@ -54,58 +53,65 @@ export default function Login() {
           <div className="bg-primary/10 p-4 rounded-full mb-4">
             <Brain className="w-12 h-12 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">{t.app.title}</h1>
+          <h1 className="text-2xl font-bold text-foreground">专注力训练平台</h1>
           <p className="text-muted-foreground mt-2 text-center">
-            {t.app.subtitle}
+            登录后，你的训练记录和评估报告只属于你。
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        {!isSupabaseAuthConfigured ? (
+          <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
+            登录服务尚未配置，请先在 Vercel 环境变量中完成 Supabase 配置。
+          </p>
+        ) : <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-foreground mb-1">
-              {t.app.usernameLabel}
-            </label>
+            <Label htmlFor="email">邮箱</Label>
             <Input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder={t.app.usernamePlaceholder}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
               className="w-full"
               autoFocus
+              required
             />
           </div>
-          
-          <Button type="submit" className="w-full h-11">
-            {t.app.startSession}
-          </Button>
-        </form>
 
-        <div className="mt-8 pt-6 border-t border-border">
-          <div className="flex flex-col gap-3">
-            <p className="text-xs text-muted-foreground text-center uppercase tracking-wider font-medium">{t.app.dataMgmt}</p>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".json"
-              className="hidden"
+          <div>
+            <Label htmlFor="password">密码（至少 6 位）</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              className="w-full"
+              required
             />
-            <Button 
-              variant="outline" 
-              onClick={handleImportClick}
-              className="w-full flex items-center justify-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              {t.app.importData}
-            </Button>
           </div>
-        </div>
+
+          <Button type="submit" className="w-full h-11" disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSignUp ? "注册并开始" : "登录并开始"}
+          </Button>
+        </form>}
+
+        {isSupabaseAuthConfigured && (
+          <button
+            type="button"
+            className="mt-4 w-full text-sm text-primary hover:underline"
+            onClick={() => setIsSignUp((value) => !value)}
+          >
+            {isSignUp ? "已有账号？返回登录" : "还没有账号？注册新账号"}
+          </button>
+        )}
 
         <div className="mt-8 text-center flex flex-col items-center gap-4">
+          <Link href="/"><span className="text-sm text-muted-foreground hover:text-foreground">返回首页</span></Link>
           <LanguageSwitcher />
           <p className="text-xs text-muted-foreground">
-            {t.app.footer}
+            你的数据按账号隔离保存。
           </p>
         </div>
       </div>

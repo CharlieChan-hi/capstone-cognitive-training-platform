@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { supabase } from "./lib/supabase";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -43,10 +44,19 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-        });
+        return (async () => {
+          const headers = new Headers(init?.headers);
+          if (supabase) {
+            const { data } = await supabase.auth.getSession();
+            const accessToken = data.session?.access_token;
+            if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+          }
+          return globalThis.fetch(input, {
+            ...(init ?? {}),
+            headers,
+            credentials: "include",
+          });
+        })();
       },
     }),
   ],

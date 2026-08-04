@@ -2,6 +2,7 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
+import { authenticateSupabaseRequest } from "./supabaseAuth";
 import * as db from "../db";
 
 export type TrpcContext = {
@@ -34,10 +35,16 @@ export async function createContext(
 
   // In local development without OAuth, use an explicitly non-admin test user
   // by default. Set DEV_ADMIN=true only when an admin flow is being tested.
+  const hasSupabaseAuth = Boolean(ENV.supabaseUrl && ENV.supabaseServiceRoleKey);
   const isLocalDevelopment =
-    !ENV.isProduction && process.env.VERCEL !== "1" && !ENV.oAuthServerUrl;
+    !ENV.isProduction &&
+    process.env.VERCEL !== "1" &&
+    !ENV.oAuthServerUrl &&
+    !hasSupabaseAuth;
   if (isLocalDevelopment) {
     user = await getDevUser();
+  } else if (hasSupabaseAuth && !ENV.oAuthServerUrl) {
+    user = await authenticateSupabaseRequest(opts.req);
   } else {
     try {
       user = await sdk.authenticateRequest(opts.req);

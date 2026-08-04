@@ -12,6 +12,7 @@ import { lazy, Suspense } from "react";
 
 // Keep the route tree stable while loading each page only when it is visited.
 const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Games = lazy(() => import("./pages/Games"));
 const Analytics = lazy(() => import("./pages/Analytics"));
@@ -99,6 +100,7 @@ function Router() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
       
       {/* Protected app routes */}
       <Route path="/app/dashboard">

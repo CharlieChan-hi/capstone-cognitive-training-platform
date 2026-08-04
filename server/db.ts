@@ -1,5 +1,6 @@
 import { eq, desc, and, gte, lte, sql, count, like, or } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { 
   InsertUser, 
   users, 
@@ -22,7 +23,10 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Supabase uses Postgres pooling. Disable prepared statements so the
+      // same connection string works with transaction poolers as well.
+      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -83,7 +87,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -215,8 +220,11 @@ export async function saveUserAssessment(
       executiveFunctionScore: input.executiveFunctionScore,
       overallScore: input.overallScore,
     };
-    const result = await tx.insert(baselineAssessments).values(assessment);
-    const assessmentId = Number(result[0].insertId);
+    const [createdAssessment] = await tx
+      .insert(baselineAssessments)
+      .values(assessment)
+      .returning({ id: baselineAssessments.id });
+    const assessmentId = createdAssessment.id;
 
     const tasks: InsertAssessmentTask[] = input.tasks.map(task => ({
       assessmentId,
@@ -272,8 +280,11 @@ export async function createTrainingSession(session: InsertTrainingSession): Pro
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const result = await db.insert(trainingSessions).values(session);
-  return result[0].insertId;
+  const [createdSession] = await db
+    .insert(trainingSessions)
+    .values(session)
+    .returning({ id: trainingSessions.id });
+  return createdSession.id;
 }
 
 export async function updateTrainingSession(

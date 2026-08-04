@@ -1,23 +1,41 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, bigint, boolean, float } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  doublePrecision,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+export const gameTypeEnum = pgEnum("game_type", ["schulte", "memory", "gonogo", "stroop"]);
+export const difficultyEnum = pgEnum("difficulty", ["easy", "medium", "hard"]);
+export const assessmentTypeEnum = pgEnum("assessment_type", ["baseline", "followup"]);
+export const qualityRatingEnum = pgEnum("quality_rating", ["excellent", "good", "fair", "poor"]);
 
 /**
  * Core user table backing auth flow.
  * Extended with consent tracking for research compliance.
  */
-export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   displayName: varchar("displayName", { length: 100 }),
   avatarUrl: text("avatarUrl"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: userRoleEnum("role").default("user").notNull(),
   /** User has consented to data collection for analysis */
   dataConsentGiven: boolean("dataConsentGiven").default(false).notNull(),
   dataConsentAt: timestamp("dataConsentAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().$onUpdate(() => new Date()).notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
@@ -27,15 +45,15 @@ export type InsertUser = typeof users.$inferInsert;
 /**
  * Training sessions - records metadata for each training session
  */
-export const trainingSessions = mysqlTable("training_sessions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const trainingSessions = pgTable("training_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   
   /** Game type: schulte, memory, gonogo, stroop */
-  gameType: mysqlEnum("gameType", ["schulte", "memory", "gonogo", "stroop"]).notNull(),
+  gameType: gameTypeEnum("gameType").notNull(),
   
   /** Difficulty level: easy, medium, hard */
-  difficulty: mysqlEnum("difficulty", ["easy", "medium", "hard"]).default("medium").notNull(),
+  difficulty: difficultyEnum("difficulty").default("medium").notNull(),
   
   /** Session start/end timestamps (UTC milliseconds) */
   startedAt: bigint("startedAt", { mode: "number" }).notNull(),
@@ -45,32 +63,32 @@ export const trainingSessions = mysqlTable("training_sessions", {
   completed: boolean("completed").default(false).notNull(),
   
   /** Aggregated metrics (computed after session completion) */
-  totalTrials: int("totalTrials"),
-  correctTrials: int("correctTrials"),
-  totalTime: int("totalTime"), // milliseconds
+  totalTrials: integer("totalTrials"),
+  correctTrials: integer("correctTrials"),
+  totalTime: integer("totalTime"), // milliseconds
   
   /** RT metrics (milliseconds) */
-  meanRt: float("meanRt"),
-  medianRt: float("medianRt"),
-  sdRt: float("sdRt"),
-  minRt: float("minRt"),
-  maxRt: float("maxRt"),
+  meanRt: doublePrecision("meanRt"),
+  medianRt: doublePrecision("medianRt"),
+  sdRt: doublePrecision("sdRt"),
+  minRt: doublePrecision("minRt"),
+  maxRt: doublePrecision("maxRt"),
   
   /** RTV (Reaction Time Variability) - coefficient of variation */
-  rtv: float("rtv"),
+  rtv: doublePrecision("rtv"),
   
   /** Performance score (0-100) */
-  score: int("score"),
+  score: integer("score"),
   
   /** Accuracy percentage (0-100) */
-  accuracy: float("accuracy"),
+  accuracy: doublePrecision("accuracy"),
   
   /** Game-specific metrics stored as JSON */
-  gameMetrics: json("gameMetrics"),
+  gameMetrics: jsonb("gameMetrics"),
   
   /** Assessment-related fields */
   isAssessment: boolean("isAssessment").default(false).notNull(),
-  assessmentId: int("assessmentId"),
+  assessmentId: integer("assessmentId"),
   
   /** Whether this session should be included in statistics */
   includedInStats: boolean("includedInStats").default(true).notNull(),
@@ -84,13 +102,13 @@ export type InsertTrainingSession = typeof trainingSessions.$inferInsert;
 /**
  * Trial data - records individual trial-level data for deep analysis
  */
-export const trialData = mysqlTable("trial_data", {
-  id: int("id").autoincrement().primaryKey(),
-  sessionId: int("sessionId").notNull(),
-  userId: int("userId").notNull(),
+export const trialData = pgTable("trial_data", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  userId: integer("userId").notNull(),
   
   /** Trial sequence number within the session */
-  trialNumber: int("trialNumber").notNull(),
+  trialNumber: integer("trialNumber").notNull(),
   
   /** Stimulus information */
   stimulusType: varchar("stimulusType", { length: 64 }), // e.g., "go", "nogo", "congruent", "incongruent"
@@ -101,7 +119,7 @@ export const trialData = mysqlTable("trial_data", {
   responseValue: varchar("responseValue", { length: 255 }), // e.g., the actual response given
   
   /** Timing (milliseconds) */
-  reactionTime: int("reactionTime"),
+  reactionTime: integer("reactionTime"),
   stimulusOnset: bigint("stimulusOnset", { mode: "number" }), // UTC timestamp
   responseTime: bigint("responseTime", { mode: "number" }), // UTC timestamp
   
@@ -109,7 +127,7 @@ export const trialData = mysqlTable("trial_data", {
   correct: boolean("correct").notNull(),
   
   /** Additional trial-specific data as JSON */
-  trialMetadata: json("trialMetadata"),
+  trialMetadata: jsonb("trialMetadata"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -164,12 +182,12 @@ export interface StroopMetrics {
  * Baseline Assessments - records comprehensive cognitive assessments
  * Used for scientific evaluation before and after training
  */
-export const baselineAssessments = mysqlTable("baseline_assessments", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const baselineAssessments = pgTable("baseline_assessments", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   
   /** Assessment type: baseline (first) or followup (7+ days later) */
-  assessmentType: mysqlEnum("assessmentType", ["baseline", "followup"]).notNull(),
+  assessmentType: assessmentTypeEnum("assessmentType").notNull(),
   
   /** When the assessment was conducted */
   assessmentDate: timestamp("assessmentDate").defaultNow().notNull(),
@@ -178,12 +196,12 @@ export const baselineAssessments = mysqlTable("baseline_assessments", {
   completed: boolean("completed").default(false).notNull(),
   
   /** Cognitive domain scores (0-100 scale) */
-  attentionScore: float("attentionScore"), // From CPT + Attention Span
-  memoryScore: float("memoryScore"), // From N-back + Visual Memory
-  executiveFunctionScore: float("executiveFunctionScore"), // From Go/No-Go + Stroop
+  attentionScore: doublePrecision("attentionScore"), // From CPT + Attention Span
+  memoryScore: doublePrecision("memoryScore"), // From N-back + Visual Memory
+  executiveFunctionScore: doublePrecision("executiveFunctionScore"), // From Go/No-Go + Stroop
   
   /** Overall composite score */
-  overallScore: float("overallScore"),
+  overallScore: doublePrecision("overallScore"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -194,28 +212,28 @@ export type InsertBaselineAssessment = typeof baselineAssessments.$inferInsert;
 /**
  * Assessment Tasks - records individual task results within an assessment
  */
-export const assessmentTasks = mysqlTable("assessment_tasks", {
-  id: int("id").autoincrement().primaryKey(),
-  assessmentId: int("assessmentId").notNull(),
+export const assessmentTasks = pgTable("assessment_tasks", {
+  id: serial("id").primaryKey(),
+  assessmentId: integer("assessmentId").notNull(),
   
   /** Task type: cpt, nback, gonogo, stroop, attention_span, visual_memory */
   taskType: varchar("taskType", { length: 64 }).notNull(),
   
   /** Order in which this task was completed (1-6) */
-  taskOrder: int("taskOrder").notNull(),
+  taskOrder: integer("taskOrder").notNull(),
   
   /** Core performance metrics */
-  meanRt: float("meanRt"), // Mean reaction time (ms)
-  sdRt: float("sdRt"), // Standard deviation of RT
-  accuracy: float("accuracy"), // Accuracy percentage (0-100)
+  meanRt: doublePrecision("meanRt"), // Mean reaction time (ms)
+  sdRt: doublePrecision("sdRt"), // Standard deviation of RT
+  accuracy: doublePrecision("accuracy"), // Accuracy percentage (0-100)
   
   /** Signal detection metrics (for CPT and Go/No-Go) */
-  dPrime: float("dPrime"), // Sensitivity index
-  hitRate: float("hitRate"), // Hit rate (0-1)
-  falseAlarmRate: float("falseAlarmRate"), // False alarm rate (0-1)
+  dPrime: doublePrecision("dPrime"), // Sensitivity index
+  hitRate: doublePrecision("hitRate"), // Hit rate (0-1)
+  falseAlarmRate: doublePrecision("falseAlarmRate"), // False alarm rate (0-1)
   
   /** Task-specific metrics stored as JSON */
-  taskMetrics: json("taskMetrics"),
+  taskMetrics: jsonb("taskMetrics"),
   
   /** When this task was completed */
   completedAt: timestamp("completedAt").defaultNow().notNull(),
@@ -227,16 +245,16 @@ export type InsertAssessmentTask = typeof assessmentTasks.$inferInsert;
 /**
  * Data Quality Flags - allows users to mark data quality for research purposes
  */
-export const dataQualityFlags = mysqlTable("data_quality_flags", {
-  id: int("id").autoincrement().primaryKey(),
-  sessionId: int("sessionId").notNull(),
-  userId: int("userId").notNull(),
+export const dataQualityFlags = pgTable("data_quality_flags", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  userId: integer("userId").notNull(),
   
   /** Whether this session should be included in statistical analysis */
   includedInStats: boolean("includedInStats").default(true).notNull(),
   
   /** Quality rating */
-  qualityRating: mysqlEnum("qualityRating", ["excellent", "good", "fair", "poor"]).default("good").notNull(),
+  qualityRating: qualityRatingEnum("qualityRating").default("good").notNull(),
   
   /** Optional user note explaining the quality rating */
   userNote: text("userNote"),

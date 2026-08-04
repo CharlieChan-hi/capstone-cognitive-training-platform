@@ -4,9 +4,15 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 export const getLoginUrl = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseAnonKey) {
+    return "/login";
+  }
 
   if (!oauthPortalUrl || !appId) {
-    return "/app/dashboard";
+    return "/login";
   }
 
   const redirectUri = `${window.location.origin}/api/oauth/callback`;

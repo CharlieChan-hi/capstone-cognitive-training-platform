@@ -1,0 +1,1 @@
+-- Enum types are created in 0000_initial_postgres.sql before dependent tables.
