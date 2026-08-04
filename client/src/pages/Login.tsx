@@ -17,21 +17,62 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
+    const recovery = window.location.hash.includes("type=recovery");
+    setIsRecovery(recovery);
     void supabase.auth.getSession().then(({ data }) => {
+      if (recovery) {
+        if (data.session?.user.email) setEmail(data.session.user.email);
+        return;
+      }
       if (data.session) setLocation("/app/dashboard");
     });
   }, [setLocation]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!supabase || !email.trim() || password.length < 6) return;
+    if (!supabase || !email.trim()) return;
 
     setSubmitting(true);
+    if (isResetting && !isRecovery) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: getAuthRedirectUrl(),
+      });
+      setSubmitting(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success(`密码重置邮件已发送至 ${email.trim()}。`);
+      return;
+    }
+
+    if (password.length < 6) {
+      setSubmitting(false);
+      return;
+    }
+
+    if (isRecovery) {
+      const { error } = await supabase.auth.updateUser({ password });
+      setSubmitting(false);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("密码已更新，请继续使用新密码登录。");
+      setIsRecovery(false);
+      setIsResetting(false);
+      setPassword("");
+      setLocation("/app/dashboard");
+      return;
+    }
+
     const result = isSignUp
       ? await supabase.auth.signUp({
           email: email.trim(),
@@ -93,9 +134,15 @@ export default function Login() {
           <div className="bg-primary/10 p-3 sm:p-4 rounded-full mb-3 sm:mb-4">
             <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground text-center">专注力训练平台</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground text-center">
+            {isRecovery ? "设置新密码" : isResetting ? "重置密码" : "专注力训练平台"}
+          </h1>
           <p className="text-muted-foreground mt-2 text-center leading-6">
-            登录后，你的训练记录和评估报告只属于你。
+            {isRecovery
+              ? "设置新密码后即可继续使用你的账号。"
+              : isResetting
+                ? "输入注册邮箱，我们会发送密码重置链接。"
+                : "登录后，你的训练记录和评估报告只属于你。"}
           </p>
         </div>
 
@@ -119,27 +166,29 @@ export default function Login() {
             />
           </div>
 
-          <div>
-            <Label htmlFor="password">密码（至少 6 位）</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={isSignUp ? "new-password" : "current-password"}
-              minLength={6}
-              className="w-full"
-              required
-            />
-          </div>
+          {(!isResetting || isRecovery) && (
+            <div>
+              <Label htmlFor="password">{isRecovery ? "新密码（至少 6 位）" : "密码（至少 6 位）"}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isRecovery || isSignUp ? "new-password" : "current-password"}
+                minLength={6}
+                className="w-full"
+                required
+              />
+            </div>
+          )}
 
           <Button type="submit" className="w-full h-11" disabled={submitting}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSignUp ? "注册并开始" : "登录并开始"}
+            {isRecovery ? "保存新密码" : isResetting ? "发送重置邮件" : isSignUp ? "注册并开始" : "登录并开始"}
           </Button>
         </form>}
 
-        {needsConfirmation && isSupabaseAuthConfigured && (
+        {needsConfirmation && isSupabaseAuthConfigured && !isResetting && !isRecovery && (
           <Button
             type="button"
             variant="outline"
@@ -151,13 +200,27 @@ export default function Login() {
           </Button>
         )}
 
-        {isSupabaseAuthConfigured && (
+        {isSupabaseAuthConfigured && !isRecovery && !isResetting && (
           <button
             type="button"
             className="mt-4 w-full text-sm text-primary hover:underline"
             onClick={() => setIsSignUp((value) => !value)}
           >
             {isSignUp ? "已有账号？返回登录" : "还没有账号？注册新账号"}
+          </button>
+        )}
+
+        {isSupabaseAuthConfigured && !isRecovery && (
+          <button
+            type="button"
+            className="mt-3 w-full text-sm text-muted-foreground hover:text-foreground hover:underline"
+            onClick={() => {
+              setIsResetting((value) => !value);
+              setNeedsConfirmation(false);
+              setPassword("");
+            }}
+          >
+            {isResetting ? "返回登录" : "忘记密码？"}
           </button>
         )}
 
