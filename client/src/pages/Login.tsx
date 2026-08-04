@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { supabase, isSupabaseAuthConfigured } from "@/lib/supabase";
+import {
+  getAuthRedirectUrl,
+  supabase,
+  isSupabaseAuthConfigured,
+} from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -28,17 +32,28 @@ export default function Login() {
 
     setSubmitting(true);
     const result = isSignUp
-      ? await supabase.auth.signUp({ email: email.trim(), password })
+      ? await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { emailRedirectTo: getAuthRedirectUrl() },
+        })
       : await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setSubmitting(false);
 
     if (result.error) {
-      toast.error(result.error.message);
+      const message = result.error.message.toLowerCase();
+      if (message.includes("email not confirmed")) {
+        toast.error("邮箱还未确认，请先点击确认邮件中的链接后再登录。");
+      } else if (message.includes("invalid login credentials")) {
+        toast.error("邮箱或密码不正确；如果刚注册，请先完成邮箱确认。");
+      } else {
+        toast.error(result.error.message);
+      }
       return;
     }
 
     if (isSignUp && !result.data.session) {
-      toast.success("注册成功，请查收邮箱并完成确认后登录。");
+      toast.success(`确认邮件已发送至 ${email.trim()}，请点击邮件中的链接后再登录。`);
       setIsSignUp(false);
       return;
     }
@@ -47,14 +62,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="bg-card rounded-2xl shadow-xl border border-border p-8 w-full max-w-md">
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-primary/10 p-4 rounded-full mb-4">
-            <Brain className="w-12 h-12 text-primary" />
+    <div className="min-h-screen bg-background flex items-start sm:items-center justify-center px-3 py-6 sm:p-6">
+      <div className="bg-card rounded-2xl shadow-xl border border-border p-5 sm:p-8 w-full max-w-md">
+        <div className="flex flex-col items-center mb-6 sm:mb-8">
+          <div className="bg-primary/10 p-3 sm:p-4 rounded-full mb-3 sm:mb-4">
+            <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">专注力训练平台</h1>
-          <p className="text-muted-foreground mt-2 text-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground text-center">专注力训练平台</h1>
+          <p className="text-muted-foreground mt-2 text-center leading-6">
             登录后，你的训练记录和评估报告只属于你。
           </p>
         </div>
@@ -63,7 +78,7 @@ export default function Login() {
           <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
             登录服务尚未配置，请先在 Vercel 环境变量中完成 Supabase 配置。
           </p>
-        ) : <form onSubmit={handleSubmit} className="space-y-4">
+        ) : <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <Label htmlFor="email">邮箱</Label>
             <Input
@@ -72,6 +87,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              autoComplete="email"
               className="w-full"
               autoFocus
               required
@@ -85,6 +101,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete={isSignUp ? "new-password" : "current-password"}
               minLength={6}
               className="w-full"
               required
@@ -107,7 +124,7 @@ export default function Login() {
           </button>
         )}
 
-        <div className="mt-8 text-center flex flex-col items-center gap-4">
+        <div className="mt-6 sm:mt-8 text-center flex flex-col items-center gap-4">
           <Link href="/"><span className="text-sm text-muted-foreground hover:text-foreground">返回首页</span></Link>
           <LanguageSwitcher />
           <p className="text-xs text-muted-foreground">
