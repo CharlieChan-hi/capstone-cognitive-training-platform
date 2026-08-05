@@ -28,8 +28,9 @@ import {
   Languages,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useState, useCallback, useEffect, useSyncExternalStore } from "react";
+import { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
+import { preloadRoute } from "@/lib/routePreload";
 
 /* ── 侧边栏宽度常量 ── */
 const SIDEBAR_EXPANDED = 256;  // 展开 16rem
@@ -59,7 +60,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
@@ -83,17 +84,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setMobileOpen(false);
   }, [location]);
 
-  const navItems = [
-    { href: "/app/dashboard", label: t.app.dashboard, icon: LayoutDashboard },
-    { href: "/app/games", label: t.app.games, icon: Gamepad2 },
-    { href: "/app/analytics", label: t.app.analytics, icon: BarChart3 },
-    { href: "/app/history", label: t.app.history, icon: History },
-    { href: "/app/leaderboard", label: t.app.leaderboard || "排行榜", icon: Trophy },
-  ];
+  const navItems = useMemo(() => {
+    const items = [
+      { href: "/app/dashboard", label: t.app.dashboard, icon: LayoutDashboard },
+      { href: "/app/games", label: t.app.games, icon: Gamepad2 },
+      { href: "/app/analytics", label: t.app.analytics, icon: BarChart3 },
+      { href: "/app/history", label: t.app.history, icon: History },
+      { href: "/app/leaderboard", label: t.app.leaderboard || "排行榜", icon: Trophy },
+    ];
 
-  if (user?.role === "admin") {
-    navItems.push({ href: "/app/admin", label: t.app.admin, icon: Shield });
-  }
+    if (user?.role === "admin") {
+      items.push({ href: "/app/admin", label: t.app.admin, icon: Shield });
+    }
+
+    return items;
+  }, [t, user?.role]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    navItems.forEach((item) => preloadRoute(item.href));
+  }, [mobileOpen, navItems]);
 
   const isActive = (href: string) => {
     if (href === "/app/dashboard") {
@@ -104,7 +114,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = "/";
+    setLocation("/");
   };
 
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
@@ -169,6 +179,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
                   <div
+                    onMouseEnter={() => preloadRoute(item.href)}
+                    onFocus={() => preloadRoute(item.href)}
                     title={collapsed ? item.label : undefined}
                     className={cn(
                       "rounded-lg text-sm font-medium overflow-hidden",
@@ -332,6 +344,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}>
                 <div
+                  onMouseEnter={() => preloadRoute(item.href)}
+                  onFocus={() => preloadRoute(item.href)}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",

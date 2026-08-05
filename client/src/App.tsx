@@ -9,29 +9,28 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "./const";
 import { DashboardLayoutSkeleton } from "./components/DashboardLayoutSkeleton";
 import { lazy, Suspense } from "react";
+import { loadDashboardLayout, loadRoute } from "./lib/routePreload";
 
 // Keep the route tree stable while loading each page only when it is visited.
-const Home = lazy(() => import("./pages/Home"));
-const Login = lazy(() => import("./pages/Login"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Games = lazy(() => import("./pages/Games"));
-const Analytics = lazy(() => import("./pages/Analytics"));
-const History = lazy(() => import("./pages/History"));
-const Admin = lazy(() => import("./pages/Admin"));
-const UserDetail = lazy(() => import("./pages/UserDetail"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Leaderboard = lazy(() => import("./pages/Leaderboard"));
-const SchulteGame = lazy(() => import("./pages/games/SchulteGame"));
-const MemoryGame = lazy(() => import("./pages/games/MemoryGame"));
-const GoNoGoGame = lazy(() => import("./pages/games/GoNoGoGame"));
-const StroopGame = lazy(() => import("./pages/games/StroopGame"));
-const DashboardLayout = lazy(() =>
-  import("./components/DashboardLayout").then(module => ({
-    default: module.DashboardLayout,
-  }))
-);
-const BaselineAssessment = lazy(() => import("./pages/BaselineAssessment"));
-const AssessmentReport = lazy(() => import("./pages/AssessmentReport"));
+const Home = lazy(() => loadRoute("/"));
+const Login = lazy(() => loadRoute("/login"));
+const Dashboard = lazy(() => loadRoute("/app/dashboard"));
+const Games = lazy(() => loadRoute("/app/games"));
+const Analytics = lazy(() => loadRoute("/app/analytics"));
+const History = lazy(() => loadRoute("/app/history"));
+const Admin = lazy(() => loadRoute("/app/admin"));
+const UserDetail = lazy(() => loadRoute("/app/admin/user/:id"));
+const Profile = lazy(() => loadRoute("/app/profile"));
+const Leaderboard = lazy(() => loadRoute("/app/leaderboard"));
+const SchulteGame = lazy(() => loadRoute("/app/games/schulte"));
+const MemoryGame = lazy(() => loadRoute("/app/games/memory"));
+const GoNoGoGame = lazy(() => loadRoute("/app/games/gonogo"));
+const StroopGame = lazy(() => loadRoute("/app/games/stroop"));
+const DashboardLayout = lazy(loadDashboardLayout);
+const BaselineAssessment = lazy(() => loadRoute("/app/assessment"));
+const AssessmentReport = lazy(() => loadRoute("/app/assessment/report"));
+
+let hasShownFirstLoad = false;
 
 function isAuthUnavailableInPreview() {
   return (
@@ -62,13 +61,17 @@ function AuthUnavailable() {
 }
 
 function AppLoading() {
+  const showLogo = !hasShownFirstLoad;
+  hasShownFirstLoad = true;
+
+  if (!showLogo) {
+    return <div className="min-h-screen bg-background" aria-hidden="true" />;
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f7f5ff] px-6">
       <div className="flex flex-col items-center gap-4 text-center">
         <img src="/logo.svg" alt="Charlie&apos;s FocusLab" className="h-16 w-16 rounded-[18px] shadow-lg shadow-indigo-900/15" />
-        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-indigo-100">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-indigo-500" />
-        </div>
       </div>
     </main>
   );

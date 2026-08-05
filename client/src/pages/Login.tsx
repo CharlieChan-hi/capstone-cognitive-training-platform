@@ -164,8 +164,8 @@ export default function Login() {
     : isResetting
       ? "输入注册邮箱，我们会发送密码重置链接。"
       : isSignUp
-        ? "注册后会直接进入训练区，下次使用邮箱和密码登录。"
-        : "登录后，你的训练记录和评估报告只属于你。";
+        ? "创建账号后即可开始训练。"
+        : "输入邮箱和密码继续。";
 
   const switchToLogin = () => {
     setIsResetting(false);
@@ -204,16 +204,6 @@ export default function Login() {
                 <p className="mt-6 text-sm leading-7 text-slate-300">
                   通过科学的认知任务和连续数据，建立属于你的专注力成长记录。
                 </p>
-              </div>
-            </div>
-            <div className="relative grid gap-4 text-sm text-slate-300">
-              <div className="flex items-center gap-3">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-400/20 text-xs text-violet-200">✓</span>
-                <span>训练记录与评估报告独立保存</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-400/20 text-xs text-violet-200">✓</span>
-                <span>安全的账号认证与数据隔离</span>
               </div>
             </div>
           </aside>
@@ -336,9 +326,6 @@ export default function Login() {
                 </button>
               )}
 
-              <div className="mt-10 border-t border-slate-100 pt-6 text-center">
-                <p className="text-xs leading-5 text-slate-400">你的训练记录按账号独立保存。</p>
-              </div>
             </div>
           </section>
         </div>

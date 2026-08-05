@@ -19,7 +19,15 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = getLoginUrl();
+  const loginUrl = getLoginUrl();
+  const isSameOrigin = new URL(loginUrl, window.location.href).origin === window.location.origin;
+
+  if (isSameOrigin) {
+    window.history.pushState({}, "", loginUrl);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  } else {
+    window.location.href = loginUrl;
+  }
 };
 
 queryClient.getQueryCache().subscribe(event => {
