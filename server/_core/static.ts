@@ -22,12 +22,16 @@ export function serveStatic(app: Express) {
         // Vite fingerprints production assets, so they can be cached safely
         // until a new HTML document points at the next fingerprint.
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("CDN-Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Vercel-CDN-Cache-Control", "public, max-age=31536000, immutable");
       } else if (filePath.endsWith(".html")) {
         res.setHeader("Cache-Control", "no-store");
       } else {
         // Small stable assets such as the logo should not block a repeat visit
         // on another network round trip.
         res.setHeader("Cache-Control", "public, max-age=86400");
+        res.setHeader("CDN-Cache-Control", "public, max-age=86400");
+        res.setHeader("Vercel-CDN-Cache-Control", "public, max-age=86400");
       }
     },
   }));
